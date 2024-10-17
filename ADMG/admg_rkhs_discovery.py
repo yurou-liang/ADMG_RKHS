@@ -14,6 +14,7 @@ import copy
 from utils.admg2pag import admg_to_pag, pprint_pag
 
 torch.set_default_dtype(torch.float64)
+torch.manual_seed(42)
 
 
 # h(W) = -logdet(sI-W◦W)+dlogs
@@ -93,13 +94,18 @@ class ADMG_RKHSDagma(nn.Module):
         # initialize coefficients beta
         #self.beta = nn.Parameter(torch.zeros(self.d, self.d, self.n))
         self.beta = nn.Parameter(torch.rand(self.d, self.d, self.n))
-        
+        # initialize the symmetric bidirected adjacency matrix with 0 on the diagonal, entries are uniformly picked from [-0.1, 0.1]
+        self.I = torch.eye(self.d)
+        self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
+        self.L = nn.Parameter(self.L)
+        self.Sigma = self.L @ self.L.T + 1e-6*self.I
+        self.Wii = torch.diag(torch.diag(self.Sigma))
+        self.W2 = self.Sigma - self.Wii
         # x: [n, d]; K: [d, n, n]: K[j, i, l] = k(x^i, x^l) without jth coordinate; grad_K1: [n, n, d]: gradient of k(x^i, x^l) wrt x^i_{k}; 
         # grad_K2: [n, n, d]: gradient of k(x^i, x^l) wrt x^l_{k}; mixed_grad: [n, n, d, d] gradient of k(x^i, x^l) wrt x^i_{a} and x^l_{b}
 
         self.omega = torch.ones(self.d, self.d)
         self.omega.fill_diagonal_(0)
-        self.I = torch.eye(self.d)
         # Compute pairwise squared Euclidean distances using broadcasting
         self.diff = self.x.unsqueeze(1) - self.x.unsqueeze(0) # [n, n, d]
         self.sq_dist = torch.einsum('jk, ilk -> jil', self.omega, self.diff**2) # [d, n, n]
@@ -136,6 +142,23 @@ class ADMG_RKHSDagma(nn.Module):
         output2 = torch.sum(output2, dim = 2) # [n, d]
         output = output1 + output2 # [n, d]
         return output
+    
+    def fc1_to_adj(self) -> torch.Tensor: # [d, d]
+        """
+        return the directed weighted adjacency matrix W1
+        """
+        weight1 = torch.einsum('jl, jilk -> kij', self.alpha, self.grad_K1) # [d, n, d]
+        weight2 = torch.einsum('jal, jilka -> kij', self.beta, self.mixed_grad) # [d, n, d]
+        weight = weight1 + weight2
+        weight = torch.sum(weight ** 2, dim = 1)/self.n # [d, d]
+        weight = torch.sqrt(weight)
+
+        return weight
+    
+    def mle_loss(self, x_est: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
+        mle = torch.trace((self.x - x_est)@self.Sigma@((self.x - x_est).T)) # change Sigma to inverse!!!!, aslo divide by n
+        return mle
+
 
         
 if __name__ == "__main__":
@@ -149,6 +172,19 @@ if __name__ == "__main__":
     
     # print("Directed edges", G.di_edges)
     # print("Bidirected edges", G.bi_edges)
+
+
+    # check mle
     x = torch.tensor([[1, 4], [2, 1], [5, 7]], dtype=torch.float64)
+    x_est = torch.tensor([[1, 2], [3, 4], [5, 6]], dtype=torch.float64)
     eq_model = ADMG_RKHSDagma(x)
-    print("forward: ", eq_model.forward())
+    Sigma = eq_model.Sigma
+    print("mle: ", eq_model.mle_loss(x_est))
+
+    result = 0
+    for i in range(x.shape[0]):
+        xi = (x[i]-x_est[i]).unsqueeze(1)
+        print("shape: ", x[i].shape)
+        print("xi: ", xi)
+        result += (xi.T)@Sigma@xi
+    print("To compared result: ", result)
