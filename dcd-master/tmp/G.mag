@@ -1,0 +1,9 @@
+Graph Nodes:
+XA,XB,XC,XD
+
+Graph Edges:
+1. XA --> XB
+2. XB --> XC
+3. XA --> XD
+4. XB --> XD
+5. XC --> XD
