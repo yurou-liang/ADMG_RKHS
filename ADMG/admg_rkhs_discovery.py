@@ -97,26 +97,31 @@ class ADMG_RKHSDagma(nn.Module):
     """
     Class for setting up causal discovery in ADMGs
     """
-    def __init__(self, x: torch.tensor, gamma = 1):
+    def __init__(self, data, gamma = 1):
         super(ADMG_RKHSDagma, self).__init__() # inherit nn.Module
-        self.x = x # data matrix [n, d]   
-        self.d = x.shape[1]
-        self.n = x.shape[0]
+        if isinstance(data, pd.DataFrame):
+            self.x = torch.tensor(data.values, dtype=torch.float64)
+        elif isinstance(data, torch.Tensor):
+            self.x = data # data matrix [n, d]  
+        else:
+            raise ValueError("Input data must be a pandas DataFrame or a torch.Tensor")
+        self.d = self.x.shape[1]
+        self.n = self.x.shape[0]
         self.gamma = gamma
         # initialize coefficients alpha
-        #alpha = torch.zeros(self.d, self.n)
-        alpha = torch.rand(self.d, self.n)
+        alpha = torch.zeros(self.d, self.n)
+        #alpha = torch.rand(self.d, self.n)
         self.alpha = nn.Parameter(alpha) 
         # initialize coefficients beta
-        #self.beta = nn.Parameter(torch.zeros(self.d, self.d, self.n))
-        self.beta = nn.Parameter(torch.rand(self.d, self.d, self.n))
+        self.beta = nn.Parameter(torch.zeros(self.d, self.d, self.n))
+        #self.beta = nn.Parameter(torch.rand(self.d, self.d, self.n))
         # initialize the symmetric bidirected adjacency matrix with 0 on the diagonal, entries are uniformly picked from [-0.1, 0.1]
         self.I = torch.eye(self.d)
         self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
         self.L = nn.Parameter(self.L)
-        self.Sigma = self.L @ self.L.T + 1e-6*self.I
-        self.Wii = torch.diag(torch.diag(self.Sigma))
-        self.W2 = self.Sigma - self.Wii
+        # self.Sigma = self.L @ self.L.T + 1e-6*self.I
+        # self.Wii = torch.diag(torch.diag(self.Sigma))
+        # self.W2 = self.Sigma - self.Wii
         # x: [n, d]; K: [d, n, n]: K[j, i, l] = k(x^i, x^l) without jth coordinate; grad_K1: [n, n, d]: gradient of k(x^i, x^l) wrt x^i_{k}; 
         # grad_K2: [n, n, d]: gradient of k(x^i, x^l) wrt x^l_{k}; mixed_grad: [n, n, d, d] gradient of k(x^i, x^l) wrt x^i_{a} and x^l_{b}
 
@@ -157,7 +162,8 @@ class ADMG_RKHSDagma(nn.Module):
         output2 = torch.einsum('jal, jila -> ijl', self.beta, self.grad_K2) # [n, d, n]
         output2 = torch.sum(output2, dim = 2) # [n, d]
         output = output1 + output2 # [n, d]
-        return output
+        Sigma = self.Sigma = self.L @ self.L.T + 1e-6*self.I
+        return output, Sigma
     
     def fc1_to_adj(self) -> torch.Tensor: # [d, d]
         """
@@ -168,15 +174,18 @@ class ADMG_RKHSDagma(nn.Module):
         weight = weight1 + weight2
         weight = torch.sum(weight ** 2, dim = 1)/self.n # [d, d]
         help = torch.tensor(1e-8)
-        weight = torch.sqrt(weight+help)
+        W1 = torch.sqrt(weight+help)
 
-        return weight
+        Sigma = self.L @ self.L.T + 1e-6*self.I
+        Wii = torch.diag(torch.diag(Sigma))
+        W2 = Sigma - Wii
+        return W1, W2
     
-    def mle_loss(self, x_est: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
+    def mle_loss(self, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
         # mle = torch.trace((self.x - x_est)@torch.linalg.inv(self.Sigma)@((self.x - x_est).T)) # Check if Sigma invertible !!!!, aslo divide by n
-        tmp = torch.linalg.solve(self.Sigma, (self.x - x_est).T)
+        tmp = torch.linalg.solve(Sigma, (self.x - x_est).T)
         mle = torch.trace((self.x - x_est)@tmp)/self.n
-        sign, logdet = torch.linalg.slogdet(self.Sigma)
+        sign, logdet = torch.linalg.slogdet(Sigma)
         mle += logdet
         return mle
     
@@ -287,23 +296,22 @@ class RKHS_discovery:
         obj_prev = 1e16
         for i in range(max_iter):
             optimizer.zero_grad()
-            W1 = self.model.fc1_to_adj()
-            W2 = self.model.W2
+            W1, W2 = self.model.fc1_to_adj()
             h_val = cycle_loss(W1, s=1)
             if h_val.item() < 0:
                 self.vprint(f'Found h negative {h_val.item()} at iter {i}')
                 return False
             penalty = structure_penalty(W1, W2, self.admg_class)
-            x_est_prior = self.model.forward()
-            mle_loss_prior = self.model.mle_loss(x_est_prior)
+            x_est_prior, Sigma_prior = self.model.forward()
+            mle_loss_prior = self.model.mle_loss(x_est_prior, Sigma_prior)
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
             score = mle_loss_prior + complexity_reg + sparsity_reg 
             obj = mu * score + penalty
             obj.backward()
             optimizer.step()
-            x_est_posterior = self.model.forward()
-            mle_loss_posterior = self.model.mle_loss(x_est_posterior)
+            x_est_posterior, Sigma_posterior = self.model.forward()
+            mle_loss_posterior = self.model.mle_loss(x_est_posterior, Sigma_posterior)
             diff = torch.abs(mle_loss_prior - mle_loss_posterior)
             if diff < 1e-6 and penalty < 1e-9:
                 break
@@ -380,7 +388,7 @@ class RKHS_discovery:
             before raising an issue in github.
         """
         torch.set_default_dtype(self.dtype)
-        self.X = torch.tensor(data.values, dtype=torch.float64)
+        self.x = torch.tensor(data.values, dtype=torch.float64)
         self.checkpoint = checkpoint
         mu = mu_init
         if type(s) == list:
@@ -397,7 +405,9 @@ class RKHS_discovery:
                 self.vprint(f'\nDagma iter t={i+1} -- mu: {mu}', 30*'-')
                 success, s_cur = False, s[i]
                 inner_iter = int(max_iter) if i == T - 1 else int(warm_iter)
-                model_copy = copy.deepcopy(self.model)
+                #model_copy = copy.deepcopy(self.model)
+                model_copy = self.model.__class__(data=self.x)
+                model_copy.load_state_dict(self.model.state_dict())
                 lr_decay = False
                 while success is False:
                     success = self.minimize(inner_iter, lr, lambda1, tau, lambda2, mu, s_cur, 
@@ -412,11 +422,10 @@ class RKHS_discovery:
                             break # lr is too small
                         s_cur = 1
                 mu *= mu_factor
-        final_W1 = self.model.fc1_to_adj().cpu().detach().numpy()
-        final_W2 = (self.model.W2 + self.model.Wii).cpu().detach().numpy()
+        final_W1, final_W2 = self.model.fc1_to_adj().cpu().detach().numpy()
         final_W1[np.abs(final_W1) < w_threshold] = 0
         final_W2[np.abs(final_W2) < w_threshold] = 0
-        return self.get_graph(final_W1, final_W2, data.columns, w_threshold)
+        return get_graph(final_W1, final_W2, data.columns, w_threshold)
 
 
 
@@ -426,8 +435,20 @@ class RKHS_discovery:
 if __name__ == "__main__":
     # W1 = torch.tensor([[1, 4, 0], [2, 0, 3], [0, 0, 3]], dtype=torch.float64)
     # W2 = torch.tensor([[0, 0, 0.7], [0, 0, 0.5], [0.7, 0.5, 0]], dtype=torch.float64)
-    # # result = ancestrality_loss(W1, W2)
-    # # print("result", result)
+
+    # # test cycle_loss
+    # cycle_loss_result = cycle_loss(W1)
+    # print("cycle_loss", cycle_loss_result)
+
+    # # test ancestrality_loss
+    # ancestrality_loss_result = ancestrality_loss(W1, W2)
+    # print("ancestrality_loss", ancestrality_loss_result)
+
+    # # test structure penalty
+    # structure_penalty_result = structure_penalty(W1, W2, admg_class ="ancestral")
+    # print("structure_penalty", structure_penalty_result)
+
+    # # test get graph
     # vertices = ["X1", "X2", "X3"]
     # threshold = 0
     # G = get_graph(W1, W2, vertices, threshold)
@@ -435,16 +456,59 @@ if __name__ == "__main__":
     # print("Directed edges", G.di_edges)
     # print("Bidirected edges", G.bi_edges)
 
+    # # ADMG_RKHSDagma class
+    # x = torch.tensor([[1, 4], [2, 1], [5, 7]], dtype=torch.float64)
+    # x_est = torch.tensor([[1, 2], [3, 4], [5, 6]], dtype=torch.float64)
+    # eq_model = ADMG_RKHSDagma(x)
 
-    # check mle
-    x = torch.tensor([[1, 4], [2, 1], [5, 7]], dtype=torch.float64)
-    x_est = torch.tensor([[1, 2], [3, 4], [5, 6]], dtype=torch.float64)
-    eq_model = ADMG_RKHSDagma(x)
-    Sigma = eq_model.Sigma
-    print("mle: ", eq_model.mle_loss(x_est))
+    # # check fc1_to_adj
+    # W1_result = eq_model.fc1_to_adj()
+    # print("fc1_to_ad: ", W1_result)
 
-    result = 0
-    for i in range(x.shape[0]):
-        xi = (x[i]-x_est[i]).unsqueeze(1)
-        result += (xi.T)@torch.linalg.inv(Sigma)@xi/x.shape[0]
-    print("To compared result: ", result)
+    # # check mle 
+    # Sigma = eq_model.Sigma
+    # print("mle: ", eq_model.mle_loss(x_est))
+
+    # # check complexity_reg
+    # complexity_reg_result = eq_model.complexity_reg(lambda1=1e-3, tau = 1e-4)
+    # print("complexity_reg: ", complexity_reg_result)
+
+    # # check sparsity_reg
+    # sparsity_reg_result = eq_model.sparsity_reg(W1_result, tau = 1e-4)
+    # print("sparsity_reg: ", sparsity_reg_result)
+
+    # mle2 = 0
+    # for i in range(x.shape[0]):
+    #     xi = (x[i]-x_est[i]).unsqueeze(1)
+    #     mle2 += (xi.T)@torch.linalg.inv(Sigma)@xi/x.shape[0]
+    # print("To compared mle: ", mle2)
+
+    # optimization
+    # example usage
+    np.random.seed(42)
+    size = 100
+    dim = 4
+
+    # DGP A->B->C->D; B<->D
+    beta = np.array([[0, 1, 0, 0],
+                     [0, 0, -1.5, 0],
+                     [0, 0, 0, 1],
+                     [0, 0, 0, 0]]).T
+
+    omega = np.array([[1.2, 0, 0, 0],
+                      [0, 1, 0, 0.6],
+                      [0, 0, 1, 0],
+                      [0, 0.6, 0, 1]])
+
+    # generate data according to the graph
+    true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
+    X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
+    X = X - np.mean(X, axis=0)  # centre the data
+
+    data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
+    print("data: ", data.head())
+    eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
+    model2 = RKHS_discovery(eq_model2, admg_class = "ancestral")
+    G = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
+    print("directed edges: ", G.di_edges)
+    print("bidirected edges: ", G.bi_edges)
