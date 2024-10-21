@@ -512,3 +512,15 @@ if __name__ == "__main__":
     G = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
     print("directed edges: ", G.di_edges)
     print("bidirected edges: ", G.bi_edges)
+
+    ### To Do:
+    # check the logic with example again
+    # print intermediate steps during optimization out
+    # Try quadratic toy example
+
+    # Advancements:
+    # Set boundary for weight parameters
+    # Does log cholesky work better?
+    # Speed up (Use GPU)
+    # build other non-linear simulations
+    # check if the java code can be used
