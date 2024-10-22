@@ -14,10 +14,12 @@ from scipy.special import comb
 from tqdm.auto import tqdm
 import typing
 import copy
+import matplotlib.pyplot as plt
 from utils.admg2pag import admg_to_pag, pprint_pag
 
 torch.set_default_dtype(torch.float64)
-torch.manual_seed(42)
+torch.manual_seed(0)
+np.random.seed(0)
 
 
 # h(W) = -logdet(sI-W◦W)+dlogs
@@ -58,14 +60,26 @@ def ancestrality_loss(W1: torch.tensor, W2: torch.tensor):
 
     return torch.sum(M*W2_pos)
 
+def bow_loss(W1, W2):
+    """
+    Compute the loss due to presence of bows in the induced ADMG of W1, W2.
+
+    :param W1: numpy matrix for directed edge coefficients.
+    :param W2: numpy matrix for bidirected edge coefficients.
+    :return: float corresponding to penalty on bows.
+    """
+    W1_pos = W1*W1
+    W2_pos = W2*W2
+    return torch.sum(W1_pos*W2_pos)
+
 def structure_penalty(W1: torch.tensor, W2: torch.tensor, admg_class):
 
     if admg_class == "ancestral":
         penalty = ancestrality_loss
     # elif admg_class == "arid":
     #     penalty = reachable_loss
-    # elif admg_class == "bowfree":
-    #     penalty = bow_loss
+    elif admg_class == "bowfree":
+        penalty = bow_loss
     else:
         raise NotImplemented("Invalid ADMG class")
     structure_penalty = cycle_loss(W1) + penalty(W1, W2)
@@ -189,6 +203,10 @@ class ADMG_RKHSDagma(nn.Module):
         mle += logdet
         return mle
     
+    def mse(self, x_est: torch.tensor): # [1, 1]
+      squared_loss = 0.5 / self.n * torch.sum((x_est - self.x) ** 2)
+      return squared_loss
+    
     def complexity_reg(self, lambda1, tau):
         """
         parameter:
@@ -304,15 +322,21 @@ class RKHS_discovery:
             penalty = structure_penalty(W1, W2, self.admg_class)
             x_est_prior, Sigma_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(x_est_prior, Sigma_prior)
+            # mse_loss_prior = self.model.mse(x_est_prior)
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
             score = mle_loss_prior + complexity_reg + sparsity_reg 
+            # score = mse_loss_prior + complexity_reg + sparsity_reg
             obj = mu * score + penalty
+            # print("penalty: ", penalty)
+            # print("obj: ", obj)
             obj.backward()
             optimizer.step()
             x_est_posterior, Sigma_posterior = self.model.forward()
             mle_loss_posterior = self.model.mle_loss(x_est_posterior, Sigma_posterior)
+            # mse_loss_posterior = self.model.mse(x_est_posterior)
             diff = torch.abs(mle_loss_prior - mle_loss_posterior)
+            # diff = torch.abs(mse_loss_prior - mse_loss_posterior)
             if diff < 1e-6 and penalty < 1e-9:
                 break
             if lr_decay and (i+1) % 1000 == 0: #every 1000 iters reduce lr
@@ -320,7 +344,7 @@ class RKHS_discovery:
             if i % self.checkpoint == 0 or i == max_iter-1:
                 obj_new = obj.item()
                 self.vprint(f"\nInner iteration {i}")
-                self.vprint(f'\th(W(model)): {h_val.item()}')
+                self.vprint(f'\th(W(model)): {penalty.item()}')
                 self.vprint(f'\tscore(model): {obj_new}')
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
                     pbar.update(max_iter-i)
@@ -405,7 +429,7 @@ class RKHS_discovery:
                 self.vprint(f'\nDagma iter t={i+1} -- mu: {mu}', 30*'-')
                 success, s_cur = False, s[i]
                 inner_iter = int(max_iter) if i == T - 1 else int(warm_iter)
-                #model_copy = copy.deepcopy(self.model)
+                # model_copy = copy.deepcopy(self.model)
                 model_copy = self.model.__class__(data=self.x)
                 model_copy.load_state_dict(self.model.state_dict())
                 lr_decay = False
@@ -422,10 +446,14 @@ class RKHS_discovery:
                             break # lr is too small
                         s_cur = 1
                 mu *= mu_factor
-        final_W1, final_W2 = self.model.fc1_to_adj().cpu().detach().numpy()
+        final_W1, _ = self.model.fc1_to_adj()
+        final_W1 = final_W1.detach().numpy()
+        output, final_W2 = self.model.forward()
+        final_W2 = final_W2.detach().numpy()
         final_W1[np.abs(final_W1) < w_threshold] = 0
         final_W2[np.abs(final_W2) < w_threshold] = 0
-        return get_graph(final_W1, final_W2, data.columns, w_threshold)
+        #return get_graph(final_W1, final_W2, data.columns, w_threshold)
+        return final_W1, final_W2, output
 
 
 
@@ -462,12 +490,12 @@ if __name__ == "__main__":
     # eq_model = ADMG_RKHSDagma(x)
 
     # # check fc1_to_adj
-    # W1_result = eq_model.fc1_to_adj()
+    # W1_result, W2_result = eq_model.fc1_to_adj()
     # print("fc1_to_ad: ", W1_result)
 
     # # check mle 
-    # Sigma = eq_model.Sigma
-    # print("mle: ", eq_model.mle_loss(x_est))
+    # _, Sigma = eq_model.forward()
+    # print("mle: ", eq_model.mle_loss(x_est, Sigma))
 
     # # check complexity_reg
     # complexity_reg_result = eq_model.complexity_reg(lambda1=1e-3, tau = 1e-4)
@@ -481,6 +509,8 @@ if __name__ == "__main__":
     # for i in range(x.shape[0]):
     #     xi = (x[i]-x_est[i]).unsqueeze(1)
     #     mle2 += (xi.T)@torch.linalg.inv(Sigma)@xi/x.shape[0]
+    # sign, logdet = torch.linalg.slogdet(Sigma)
+    # mle2 += logdet
     # print("To compared mle: ", mle2)
 
     # optimization
@@ -490,28 +520,61 @@ if __name__ == "__main__":
     dim = 4
 
     # DGP A->B->C->D; B<->D
-    beta = np.array([[0, 1, 0, 0],
-                     [0, 0, -1.5, 0],
-                     [0, 0, 0, 1],
-                     [0, 0, 0, 0]]).T
+    # beta = np.array([[0, 1, 0, 0],
+    #                  [0, 0, -1.5, 0],
+    #                  [0, 0, 0, 1],
+    #                  [0, 0, 0, 0]]).T
 
-    omega = np.array([[1.2, 0, 0, 0],
-                      [0, 1, 0, 0.6],
-                      [0, 0, 1, 0],
-                      [0, 0.6, 0, 1]])
+    # omega = np.array([[1.2, 0, 0, 0],
+    #                   [0, 1, 0, 0.6],
+    #                   [0, 0, 1, 0],
+    #                   [0, 0.6, 0, 1]])
 
-    # generate data according to the graph
-    true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
-    X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
-    X = X - np.mean(X, axis=0)  # centre the data
+    # # generate data according to the graph
+    # true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
+    # X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
+    # X = X - np.mean(X, axis=0)  # centre the data
 
-    data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
-    print("data: ", data.head())
+    # A = np.random.uniform(low=0, high=10, size=100)
+    # Z = np.random.uniform(low=0, high=5, size=100)
+    # epsilon = np.random.normal(0,1, 100) 
+    # B = np.array([A**2 + epsilon + Z for A, epsilon, Z in zip(A, epsilon, Z)])
+    # C = np.array([0.05*(B**2) + epsilon for B, epsilon in zip(B, epsilon)])
+    # D = np.array([0.1*(C**2) + epsilon + Z for C, epsilon, Z in zip(C, epsilon, Z)])
+    
+
+    # data = pd.DataFrame({"A": A, "B": B, "C": C, "D": D})
+    # print("data: ", data.head())
+    # eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
+    # model2 = RKHS_discovery(eq_model2, admg_class = "bowfree", verbose=True)
+    # W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
+    # print("W1: ", W1)
+    # print("W2: ", W2)
+
+    # Toy example: quadratic
+    np.random.seed(0)
+    #z = np.random.uniform(low=0, high=3, size=100)
+    x = np.random.uniform(low=0, high=10, size=100)
+    epsilon = np.random.normal(0,1, 100) 
+    y = np.array([x + epsilon for x, epsilon in zip(x, epsilon)])
+    X = np.column_stack((x, y))
+    data = pd.DataFrame(X, columns=['x', 'y'])
     eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
-    model2 = RKHS_discovery(eq_model2, admg_class = "ancestral")
-    G = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
-    print("directed edges: ", G.di_edges)
-    print("bidirected edges: ", G.bi_edges)
+    model2 = RKHS_discovery(eq_model2, admg_class = "ancestral", verbose=True)
+    W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
+    print("W1: ", W1)
+    print("W2: ", W2)
+    y_hat = output[:, 1].detach().numpy()
+    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.show()
+    print("The programm is closed")
+    
+    # Check if the mle loss is correct and the initialzation for L
 
     ### To Do:
     # check the logic with example again
@@ -524,3 +587,10 @@ if __name__ == "__main__":
     # Speed up (Use GPU)
     # build other non-linear simulations
     # check if the java code can be used
+
+
+    # Problem: Toy example doesn't work
+    # Maybe the issue of initialization of covaraince matrix
+    # Check if both loss are same here and in original paper
+    # Plot the result
+    # Should not be the issue of linear or non-linear example
