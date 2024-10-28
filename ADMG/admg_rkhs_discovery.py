@@ -80,6 +80,8 @@ def structure_penalty(W1: torch.tensor, W2: torch.tensor, admg_class):
     #     penalty = reachable_loss
     elif admg_class == "bowfree":
         penalty = bow_loss
+    elif admg_class == "none":
+        penalty = lambda *args, **kwargs: 0
     else:
         raise NotImplemented("Invalid ADMG class")
     structure_penalty = cycle_loss(W1) + penalty(W1, W2)
@@ -107,6 +109,42 @@ def get_graph(W1: torch.tensor, W2: torch.tensor, vertices, threshold):
                 G.add_biedge(vertices[i], vertices[j])
     return G
 
+def SPDLogCholesky(M: torch.tensor, d):
+    """
+    Use LogCholesky decomposition that map a matrix M to a SPD Sigma matrix.
+    """
+    # Take strictly lower triangular matrix
+    M_strict = M.tril(diagonal=-1)
+    # Make matrix with exponentiated diagonal
+    D = M.diag()
+    # Make the Cholesky decomposition matrix
+    L = M_strict + torch.diag(torch.exp(D))
+    # Invert the Cholesky decomposition
+    Sigma = torch.matmul(L, L.t()) + 1e-6 * torch.eye(d)
+    return Sigma
+
+def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
+    """
+    Reverse the LogCholesky decomposition that map the SPD Sigma matrix to the matrix M.
+    """
+    # Compute the Cholesky decomposition
+    cov = torch.rand(d, d) * 0.1 - 0.05
+    # print("cov: ", cov)
+    # tril_indices = torch.tril_indices(d, d)
+    # cov = cov[tril_indices[0], tril_indices[1]]
+    cov = torch.triu(cov, diagonal=1)
+    # print("cov: ", cov)
+    # Sigma_init = cov + cov.T + torch.diag(Sigma.diag())
+    Sigma_init = cov + cov.T + torch.eye(d)
+    L = torch.linalg.cholesky(Sigma_init)
+    # Take strictly lower triangular matrix
+    M_strict = L.tril(diagonal=-1)
+    # Take the logarithm of the diagonal
+    D = torch.diag(torch.log(L.diag()))
+    # Return the log-Cholesky parametrization
+    M = M_strict + D
+    return M
+
 class ADMG_RKHSDagma(nn.Module):
     """
     Class for setting up causal discovery in ADMGs
@@ -124,15 +162,19 @@ class ADMG_RKHSDagma(nn.Module):
         self.gamma = gamma
         # initialize coefficients alpha
         alpha = torch.zeros(self.d, self.n)
-        #alpha = torch.rand(self.d, self.n)
+        # alpha = torch.rand(self.d, self.n)
         self.alpha = nn.Parameter(alpha) 
         # initialize coefficients beta
         self.beta = nn.Parameter(torch.zeros(self.d, self.d, self.n))
+        # self.beta = torch.zeros(self.d, self.d, self.n)
         #self.beta = nn.Parameter(torch.rand(self.d, self.d, self.n))
         # initialize the symmetric bidirected adjacency matrix with 0 on the diagonal, entries are uniformly picked from [-0.1, 0.1]
         self.I = torch.eye(self.d)
-        self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
-        self.L = nn.Parameter(self.L)
+        # self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
+        Sigma = torch.cov(self.x.T)
+        self.M = reverse_SPDLogCholesky(self.d, Sigma)
+        self.M = nn.Parameter(self.M)
+        # self.L = nn.Parameter(self.L)
         # self.Sigma = self.L @ self.L.T + 1e-6*self.I
         # self.Wii = torch.diag(torch.diag(self.Sigma))
         # self.W2 = self.Sigma - self.Wii
@@ -168,6 +210,7 @@ class ADMG_RKHSDagma(nn.Module):
         self.mixed_grad[self.expanded_identity_mask1] = 0
         self.mixed_grad[self.expanded_identity_mask2] = 0
 
+
     def forward(self): #[n, d] -> [n, d]
         """
         forward(x)_{l,j} = estimation of x_j at lth observation
@@ -176,7 +219,9 @@ class ADMG_RKHSDagma(nn.Module):
         output2 = torch.einsum('jal, jila -> ijl', self.beta, self.grad_K2) # [n, d, n]
         output2 = torch.sum(output2, dim = 2) # [n, d]
         output = output1 + output2 # [n, d]
-        Sigma = self.Sigma = self.L @ self.L.T + 1e-6*self.I
+        # print("Check M: ", self.M.requires_grad_())
+        Sigma = SPDLogCholesky(self.M, d=self.d)
+        # print("Sigma: ", Sigma)
         return output, Sigma
     
     def fc1_to_adj(self) -> torch.Tensor: # [d, d]
@@ -190,13 +235,14 @@ class ADMG_RKHSDagma(nn.Module):
         help = torch.tensor(1e-8)
         W1 = torch.sqrt(weight+help)
 
-        Sigma = self.L @ self.L.T + 1e-6*self.I
+        _, Sigma = self.forward()
         Wii = torch.diag(torch.diag(Sigma))
         W2 = Sigma - Wii
         return W1, W2
     
     def mle_loss(self, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
         # mle = torch.trace((self.x - x_est)@torch.linalg.inv(self.Sigma)@((self.x - x_est).T)) # Check if Sigma invertible !!!!, aslo divide by n
+        Sigma = self.I
         tmp = torch.linalg.solve(Sigma, (self.x - x_est).T)
         mle = torch.trace((self.x - x_est)@tmp)/self.n
         sign, logdet = torch.linalg.slogdet(Sigma)
@@ -315,12 +361,15 @@ class RKHS_discovery:
         for i in range(max_iter):
             optimizer.zero_grad()
             W1, W2 = self.model.fc1_to_adj()
+            M = self.model.M
+            # print("M require_grad: ", M.requires_grad_())
             h_val = cycle_loss(W1, s=1)
             if h_val.item() < 0:
                 self.vprint(f'Found h negative {h_val.item()} at iter {i}')
                 return False
             penalty = structure_penalty(W1, W2, self.admg_class)
             x_est_prior, Sigma_prior = self.model.forward()
+            # print("Sigma_prior require_grad: ", Sigma_prior.requires_grad_())
             mle_loss_prior = self.model.mle_loss(x_est_prior, Sigma_prior)
             # mse_loss_prior = self.model.mse(x_est_prior)
             complexity_reg = self.model.complexity_reg(lambda1, tau)
@@ -346,6 +395,15 @@ class RKHS_discovery:
                 self.vprint(f"\nInner iteration {i}")
                 self.vprint(f'\th(W(model)): {penalty.item()}')
                 self.vprint(f'\tscore(model): {obj_new}')
+                self.vprint(f'\t mle: {mle_loss_posterior}')
+                self.vprint(f'\tW1: {W1}')
+                self.vprint(f'\tcycle loss: {h_val}')
+                self.vprint(f'\tW2: {Sigma_prior}')
+                self.vprint(f'\tstructure loss: {penalty-h_val}')
+                self.vprint(f'\tSigma: {Sigma_posterior}')
+                self.vprint(f'\talpha: {self.model.alpha}')
+                self.vprint(f'\tbeta: {self.model.beta}')
+                print("Check M: ", self.model.M.grad)
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
                     pbar.update(max_iter-i)
                     break
@@ -485,25 +543,25 @@ if __name__ == "__main__":
     # print("Bidirected edges", G.bi_edges)
 
     # # ADMG_RKHSDagma class
-    # x = torch.tensor([[1, 4], [2, 1], [5, 7]], dtype=torch.float64)
-    # x_est = torch.tensor([[1, 2], [3, 4], [5, 6]], dtype=torch.float64)
-    # eq_model = ADMG_RKHSDagma(x)
+    x = torch.tensor([[1, 4], [2, 1], [5, 7], [8,9]], dtype=torch.float64)
+    x_est = torch.tensor([[1, 2], [3, 4], [5, 6], [0,0]], dtype=torch.float64)
+    eq_model = ADMG_RKHSDagma(x)
+
+    # # check forward
+    # output, Sigma = eq_model.forward()
+    # print("Sigma in the class: ", Sigma)
+
+    # cov_matrix = np.cov(x.numpy().T)
+    # print("True covariance matrix: ", cov_matrix)
 
     # # check fc1_to_adj
     # W1_result, W2_result = eq_model.fc1_to_adj()
-    # print("fc1_to_ad: ", W1_result)
+    # print("fc1_to_ad W1: ", W1_result)
+    # print("fc1_to_ad W2: ", W2_result)
 
-    # # check mle 
+    # check mle 
     # _, Sigma = eq_model.forward()
     # print("mle: ", eq_model.mle_loss(x_est, Sigma))
-
-    # # check complexity_reg
-    # complexity_reg_result = eq_model.complexity_reg(lambda1=1e-3, tau = 1e-4)
-    # print("complexity_reg: ", complexity_reg_result)
-
-    # # check sparsity_reg
-    # sparsity_reg_result = eq_model.sparsity_reg(W1_result, tau = 1e-4)
-    # print("sparsity_reg: ", sparsity_reg_result)
 
     # mle2 = 0
     # for i in range(x.shape[0]):
@@ -511,7 +569,28 @@ if __name__ == "__main__":
     #     mle2 += (xi.T)@torch.linalg.inv(Sigma)@xi/x.shape[0]
     # sign, logdet = torch.linalg.slogdet(Sigma)
     # mle2 += logdet
-    # print("To compared mle: ", mle2)
+    # mle2 = 0.5*mle2 + 0.5*x.shape[1]*torch.log(torch.tensor(2 * torch.pi))
+    # print("To compared mle2: ", mle2)
+
+    # mean = torch.tensor([0.0, 0.0])
+    # mvn = torch.distributions.MultivariateNormal(mean, Sigma)
+    # mle3 = 0
+    # for i in range(x.shape[0]):
+    #     xi = (x[i]-x_est[i])
+    #     print("xi ", xi)
+    #     mle3 += -mvn.log_prob(xi)
+    # mle3 = mle3/x.shape[0]
+    # print("To compared mle3: ", mle3)
+
+
+    
+    # # check complexity_reg
+    # complexity_reg_result = eq_model.complexity_reg(lambda1=1e-3, tau = 1e-4)
+    # print("complexity_reg: ", complexity_reg_result)
+
+    # # check sparsity_reg
+    # sparsity_reg_result = eq_model.sparsity_reg(W1_result, tau = 1e-4)
+    # print("sparsity_reg: ", sparsity_reg_result)
 
     # optimization
     # example usage
@@ -550,20 +629,22 @@ if __name__ == "__main__":
     # W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
     # print("W1: ", W1)
     # print("W2: ", W2)
-
+    print("____________________________________________________________________________________________________________________")
     # Toy example: quadratic
     np.random.seed(0)
     #z = np.random.uniform(low=0, high=3, size=100)
     x = np.random.uniform(low=0, high=10, size=100)
     epsilon = np.random.normal(0,1, 100) 
-    y = np.array([x + epsilon for x, epsilon in zip(x, epsilon)])
+    y = np.array([x**2 + epsilon for x, epsilon in zip(x, epsilon)])
     X = np.column_stack((x, y))
     data = pd.DataFrame(X, columns=['x', 'y'])
     eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
-    model2 = RKHS_discovery(eq_model2, admg_class = "ancestral", verbose=True)
+    model2 = RKHS_discovery(eq_model2, admg_class = "bowfree", verbose=True)
     W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
     print("W1: ", W1)
     print("W2: ", W2)
+    sign, logdet = torch.linalg.slogdet(torch.tensor(W2))
+    print("logdet: ", logdet)
     y_hat = output[:, 1].detach().numpy()
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
     plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
@@ -594,3 +675,4 @@ if __name__ == "__main__":
     # Check if both loss are same here and in original paper
     # Plot the result
     # Should not be the issue of linear or non-linear example
+    # Problem is in initialization of Sigma
