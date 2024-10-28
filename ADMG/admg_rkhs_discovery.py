@@ -120,7 +120,7 @@ def SPDLogCholesky(M: torch.tensor, d):
     # Make the Cholesky decomposition matrix
     L = M_strict + torch.diag(torch.exp(D))
     # Invert the Cholesky decomposition
-    Sigma = torch.matmul(L, L.t()) + 1e-6 * torch.eye(d)
+    Sigma = torch.matmul(L, L.t()) + 1e-6 * torch.eye(d) # numerical stability
     return Sigma
 
 def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
@@ -633,9 +633,9 @@ if __name__ == "__main__":
     # Toy example: quadratic
     np.random.seed(0)
     #z = np.random.uniform(low=0, high=3, size=100)
-    x = np.random.uniform(low=0, high=10, size=100)
+    x = np.random.uniform(low=-3, high=3, size=100)
     epsilon = np.random.normal(0,1, 100) 
-    y = np.array([x**2 + epsilon for x, epsilon in zip(x, epsilon)])
+    y = np.array([np.sin(x)*10 + epsilon for x, epsilon in zip(x, epsilon)])
     X = np.column_stack((x, y))
     data = pd.DataFrame(X, columns=['x', 'y'])
     eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
@@ -655,24 +655,16 @@ if __name__ == "__main__":
     plt.show()
     print("The programm is closed")
     
-    # Check if the mle loss is correct and the initialzation for L
 
     ### To Do:
-    # check the logic with example again
-    # print intermediate steps during optimization out
-    # Try quadratic toy example
 
-    # Advancements:
-    # Set boundary for weight parameters
-    # Does log cholesky work better?
-    # Speed up (Use GPU)
+    # Try the linear simulation from reference and may other simulations from the reference
+    # Add other algebraic constraints
     # build other non-linear simulations
+
+    # Try to find the real dataset
+    # Check two new papers for further enhancement
+
+    # Set boundary for weight parameters
+    # Speed up (Use GPU)
     # check if the java code can be used
-
-
-    # Problem: Toy example doesn't work
-    # Maybe the issue of initialization of covaraince matrix
-    # Check if both loss are same here and in original paper
-    # Plot the result
-    # Should not be the issue of linear or non-linear example
-    # Problem is in initialization of Sigma
