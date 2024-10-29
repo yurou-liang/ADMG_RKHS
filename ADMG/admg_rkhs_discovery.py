@@ -16,10 +16,13 @@ import typing
 import copy
 import matplotlib.pyplot as plt
 from utils.admg2pag import admg_to_pag, pprint_pag
+import pandas as pd
+# from sklearn.preprocessing import StandardScaler
 
 torch.set_default_dtype(torch.float64)
-torch.manual_seed(0)
-np.random.seed(0)
+device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+torch.set_default_device(device)
+# torch.manual_seed(0)
 
 
 # h(W) = -logdet(sI-W◦W)+dlogs
@@ -152,9 +155,9 @@ class ADMG_RKHSDagma(nn.Module):
     def __init__(self, data, gamma = 1):
         super(ADMG_RKHSDagma, self).__init__() # inherit nn.Module
         if isinstance(data, pd.DataFrame):
-            self.x = torch.tensor(data.values, dtype=torch.float64)
+            self.x = torch.tensor(data.values, dtype=torch.float64).to(device)
         elif isinstance(data, torch.Tensor):
-            self.x = data # data matrix [n, d]  
+            self.x = data.to(device) # data matrix [n, d]  
         else:
             raise ValueError("Input data must be a pandas DataFrame or a torch.Tensor")
         self.d = self.x.shape[1]
@@ -242,7 +245,7 @@ class ADMG_RKHSDagma(nn.Module):
     
     def mle_loss(self, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
         # mle = torch.trace((self.x - x_est)@torch.linalg.inv(self.Sigma)@((self.x - x_est).T)) # Check if Sigma invertible !!!!, aslo divide by n
-        Sigma = self.I
+        # Sigma = self.I
         tmp = torch.linalg.solve(Sigma, (self.x - x_est).T)
         mle = torch.trace((self.x - x_est)@tmp)/self.n
         sign, logdet = torch.linalg.slogdet(Sigma)
@@ -376,34 +379,39 @@ class RKHS_discovery:
             sparsity_reg = self.model.sparsity_reg(W1, tau)
             score = mle_loss_prior + complexity_reg + sparsity_reg 
             # score = mse_loss_prior + complexity_reg + sparsity_reg
-            obj = mu * score + penalty
+            obj = mu * score + penalty + torch.norm(Sigma_prior - torch.eye(Sigma_prior.size(0)) , p='fro') ** 2
             # print("penalty: ", penalty)
             # print("obj: ", obj)
             obj.backward()
             optimizer.step()
             x_est_posterior, Sigma_posterior = self.model.forward()
             mle_loss_posterior = self.model.mle_loss(x_est_posterior, Sigma_posterior)
-            # mse_loss_posterior = self.model.mse(x_est_posterior)
+            mse_loss_posterior = self.model.mse(x_est_posterior)
             diff = torch.abs(mle_loss_prior - mle_loss_posterior)
             # diff = torch.abs(mse_loss_prior - mse_loss_posterior)
+            eigenvalues = torch.linalg.eigh(Sigma_prior)[0]
             if diff < 1e-6 and penalty < 1e-9:
                 break
             if lr_decay and (i+1) % 1000 == 0: #every 1000 iters reduce lr
                 scheduler.step()
             if i % self.checkpoint == 0 or i == max_iter-1:
                 obj_new = obj.item()
+                self.vprint(f"\nmu {mu}")
                 self.vprint(f"\nInner iteration {i}")
                 self.vprint(f'\th(W(model)): {penalty.item()}')
                 self.vprint(f'\tscore(model): {obj_new}')
                 self.vprint(f'\t mle: {mle_loss_posterior}')
+                self.vprint(f'\t mse: {mse_loss_posterior}')
                 self.vprint(f'\tW1: {W1}')
                 self.vprint(f'\tcycle loss: {h_val}')
                 self.vprint(f'\tW2: {Sigma_prior}')
                 self.vprint(f'\tstructure loss: {penalty-h_val}')
                 self.vprint(f'\tSigma: {Sigma_posterior}')
-                self.vprint(f'\talpha: {self.model.alpha}')
-                self.vprint(f'\tbeta: {self.model.beta}')
-                print("Check M: ", self.model.M.grad)
+                # self.vprint(f'\talpha: {self.model.alpha}')
+                # self.vprint(f'\tbeta: {self.model.beta}')
+                self.vprint("Check M: ", self.model.M.grad)
+                self.vprint("Check y: ", x_est_posterior[:, 1])
+                self.vprint("Check eigenvalues: ", eigenvalues.min().item())
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
                     pbar.update(max_iter-i)
                     break
@@ -484,7 +492,8 @@ class RKHS_discovery:
 
         with tqdm(total=(T-1)*warm_iter+max_iter) as pbar:
             for i in range(int(T)):
-                self.vprint(f'\nDagma iter t={i+1} -- mu: {mu}', 30*'-')
+                # self.vprint(f'\nDagma iter t={i+1} -- mu: {mu}', 30*'-')
+                print(f'\nDagma iter t={i+1} -- mu: {mu}', 30*'-')
                 success, s_cur = False, s[i]
                 inner_iter = int(max_iter) if i == T - 1 else int(warm_iter)
                 # model_copy = copy.deepcopy(self.model)
@@ -492,6 +501,7 @@ class RKHS_discovery:
                 model_copy.load_state_dict(self.model.state_dict())
                 lr_decay = False
                 while success is False:
+                    print("success: ", success)
                     success = self.minimize(inner_iter, lr, lambda1, tau, lambda2, mu, s_cur, 
                                         lr_decay, pbar=pbar)
                     if success is False:
@@ -505,9 +515,11 @@ class RKHS_discovery:
                         s_cur = 1
                 mu *= mu_factor
         final_W1, _ = self.model.fc1_to_adj()
-        final_W1 = final_W1.detach().numpy()
         output, final_W2 = self.model.forward()
-        final_W2 = final_W2.detach().numpy()
+        print("final_W1: ", final_W1)
+        print("final_W2: ", final_W2)
+        final_W1 = final_W1.cpu().detach().numpy()
+        final_W2 = final_W2.cpu().detach().numpy()
         final_W1[np.abs(final_W1) < w_threshold] = 0
         final_W2[np.abs(final_W2) < w_threshold] = 0
         #return get_graph(final_W1, final_W2, data.columns, w_threshold)
@@ -613,6 +625,7 @@ if __name__ == "__main__":
     # true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
     # X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
     # X = X - np.mean(X, axis=0)  # centre the data
+    # data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
 
     # A = np.random.uniform(low=0, high=10, size=100)
     # Z = np.random.uniform(low=0, high=5, size=100)
@@ -620,17 +633,19 @@ if __name__ == "__main__":
     # B = np.array([A**2 + epsilon + Z for A, epsilon, Z in zip(A, epsilon, Z)])
     # C = np.array([0.05*(B**2) + epsilon for B, epsilon in zip(B, epsilon)])
     # D = np.array([0.1*(C**2) + epsilon + Z for C, epsilon, Z in zip(C, epsilon, Z)])
-    
-
     # data = pd.DataFrame({"A": A, "B": B, "C": C, "D": D})
+
+    
     # print("data: ", data.head())
-    # eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
+    # eq_model2 = ADMG_RKHSDagma(data, gamma = 1).to(device)
     # model2 = RKHS_discovery(eq_model2, admg_class = "bowfree", verbose=True)
     # W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
     # print("W1: ", W1)
     # print("W2: ", W2)
     print("____________________________________________________________________________________________________________________")
-    # Toy example: quadratic
+
+
+    # # Toy example: quadratic
     np.random.seed(0)
     #z = np.random.uniform(low=0, high=3, size=100)
     x = np.random.uniform(low=-3, high=3, size=100)
