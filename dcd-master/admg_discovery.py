@@ -7,7 +7,9 @@ import scipy.optimize as sopt
 import pandas as pd
 from ananke.graphs import ADMG
 from scipy.special import comb
+import matplotlib.pyplot as plt
 import copy
+import math
 
 from ricf import bic
 from utils.admg2pag import admg_to_pag, pprint_pag
@@ -71,7 +73,7 @@ def ancestrality_loss(W1, W2):
     for k in range(1, d):
         W1k = anp.dot(W1k, W1_pos)
         # M += comb(d, k) * (1 ** k) * W1k (typical binoimial)
-        M += 1.0/np.math.factorial(k) * W1k #(special scaling)
+        M += 1.0/math.factorial(k) * W1k #(special scaling)
 
     return anp.sum(anp.multiply(M, W2_pos))
 
@@ -350,6 +352,8 @@ class Discovery:
             penalty = reachable_loss
         elif admg_class == "bowfree":
             penalty = bow_loss
+        elif admg_class == "none":
+            penalty = lambda *args, **kwargs: 0
         else:
             raise NotImplemented("Invalid ADMG class")
 
@@ -417,10 +421,11 @@ class Discovery:
             if h <= h_tol or rho >= rho_max:
                 break
 
-        final_W1, final_W2 = W1_hat.copy(), W2_hat + Wii_hat
+        final_W1, final_W2 = W1_hat.copy(), W2_hat + Wii_hat 
         final_W1[np.abs(final_W1) < w_threshold] = 0
         final_W2[np.abs(final_W2) < w_threshold] = 0
-        return self.get_graph(final_W1, final_W2, data.columns, w_threshold), convergence
+        output = self.X_@final_W1
+        return self.get_graph(final_W1, final_W2, data.columns, w_threshold), convergence, output
 
     def discover_admg(self, data, admg_class, tiers=None, unconfounded_vars=[], max_iter=100,
                       h_tol=1e-8, rho_max=1e+16, num_restarts=5, w_threshold=0.05,
@@ -475,35 +480,90 @@ if __name__ == "__main__":
 
     # example usage
     np.random.seed(42)
-    size = 1000
-    dim = 4
+    # size = 100
+    # dim = 4
 
-    # DGP A->B->C->D; B<->D
-    beta = np.array([[0, 1, 0, 0],
-                     [0, 0, -1.5, 0],
-                     [0, 0, 0, 1],
-                     [0, 0, 0, 0]]).T
+    # # DGP A->B->C->D; B<->D, beta is W1, omega is W2
+    # beta = np.array([[0, 1, 0, 0],
+    #                  [0, 0, -1.5, 0],
+    #                  [0, 0, 0, 1],
+    #                  [0, 0, 0, 0]]).T
 
-    omega = np.array([[1.2, 0, 0, 0],
-                      [0, 1, 0, 0.6],
-                      [0, 0, 1, 0],
-                      [0, 0.6, 0, 1]])
+    # omega = np.array([[1.2, 0, 0, 0],
+    #                   [0, 1, 0, 0.6],
+    #                   [0, 0, 1, 0],
+    #                   [0, 0.6, 0, 1]])
 
-    # generate data according to the graph
-    true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
-    X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
-    X = X - np.mean(X, axis=0)  # centre the data
+    # # generate data according to the graph
+    # true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
+    # X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
+    # X = X - np.mean(X, axis=0)  # centre the data
 
-    data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
+    # data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
+
+    # A = np.random.uniform(low=0, high=10, size=100)
+    # Z = np.random.uniform(low=0, high=5, size=100)
+    # epsilon = np.random.normal(0,1, 100) 
+    # B = np.array([A**2 + epsilon + Z for A, epsilon, Z in zip(A, epsilon, Z)])
+    # C = np.array([0.05*(B**2) + epsilon for B, epsilon in zip(B, epsilon)])
+    # D = np.array([0.1*(C**2) + epsilon + Z for C, epsilon, Z in zip(C, epsilon, Z)])
+    
+
+    # data = pd.DataFrame({"A": A, "B": B, "C": C, "D": D})
+
+    # learn = Discovery(lamda=0.05)
+    # best_G = learn.discover_admg(data, admg_class="bowfree", verbose=True)
+    # print(learn.convergence_)
+    # print(learn.G_.di_edges)
+    # print(learn.G_.bi_edges)
+
+    # # convert ADMG to PAG
+    # # pag = admg_to_pag(best_G)
+    # # pprint_pag(pag)
+
+    W1 = np.array([[1, 4, 0], [2, 0, 3], [0, 0, 3]])
+    W2 = np.array([[0, 0, 0.7], [0, 0, 0.5], [0.7, 0.5, 0]])
+
+    # # test cycle_loss
+    # cycle_loss_result = cycle_loss(W1)
+    # print("cycle_loss", cycle_loss_result)
+        # test ancestrality_loss
+    # ancestrality_loss_result = ancestrality_loss(W1, W2)
+    # print("ancestrality_loss", ancestrality_loss_result)
+
+    np.random.seed(0)
+    #z = np.random.uniform(low=0, high=3, size=100)
+    x = np.random.uniform(low=-3, high=3, size=100)
+    epsilon = np.random.normal(0, 1, 100) 
+    y = np.array([np.sin(x)*10 + epsilon for x, epsilon in zip(x, epsilon)])
+    X = np.column_stack((x, y))
+    data = pd.DataFrame(X, columns=['x', 'y'])
+
+    # Step 1: Define the covariance matrix
+    # True_Sigma = np.array([[0.8, 0.3],    # Variance of X is 1, covariance between X and Y is 0.8
+    #                 [0.3, 0.8]])   # Variance of Y is 1, covariance between Y and X is 0.8
+
+    # epsilon = np.random.multivariate_normal([0] * 2, True_Sigma, size=200)
+    # np.random.seed(0)
+    # epsilon1 = epsilon[:, 0]
+    # epsilon2 = epsilon[:, 1]
+    # x = np.random.uniform(low=-3, high=3, size=200)
+    # true_x = x + epsilon1
+    # y = np.array([np.sin(x)*10 + epsilon2 for x, epsilon2 in zip(x, epsilon2)])
+    # X = np.column_stack((true_x, y))
+    # data = pd.DataFrame(X, columns=['x', 'y'])
+    # covariance = data.cov()
+    # print("covariance: ", covariance)
 
     learn = Discovery(lamda=0.05)
-    best_G = learn.discover_admg(data, admg_class="bowfree", verbose=True)
-    print(learn.convergence_)
-    print(learn.G_.di_edges)
-    print(learn.G_.bi_edges)
-
-    # convert ADMG to PAG
-    pag = admg_to_pag(best_G)
-    pprint_pag(pag)
-
-    #Why anp? What is tiers??????????
+    G, convergence, output = learn._discover_admg(data, admg_class = "none", verbose=True)
+    y_hat = output[:, 1]
+    print(G.di_edges)
+    print(G.bi_edges)
+    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.show()
