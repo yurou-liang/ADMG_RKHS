@@ -480,26 +480,26 @@ if __name__ == "__main__":
 
     # example usage
     np.random.seed(42)
-    # size = 100
-    # dim = 4
+    size = 100
+    dim = 4
 
-    # # DGP A->B->C->D; B<->D, beta is W1, omega is W2
-    # beta = np.array([[0, 1, 0, 0],
-    #                  [0, 0, -1.5, 0],
-    #                  [0, 0, 0, 1],
-    #                  [0, 0, 0, 0]]).T
+    # DGP A->B->C->D; B<->D, beta is W1, omega is W2
+    beta = np.array([[0, 1, 0, 0],
+                     [0, 0, -1.5, 0],
+                     [0, 0, 0, 1],
+                     [0, 0, 0, 0]]).T
 
-    # omega = np.array([[1.2, 0, 0, 0],
-    #                   [0, 1, 0, 0.6],
-    #                   [0, 0, 1, 0],
-    #                   [0, 0.6, 0, 1]])
+    omega = np.array([[1.2, 0, 0, 0],
+                      [0, 1, 0, 0.6],
+                      [0, 0, 1, 0],
+                      [0, 0.6, 0, 1]])
 
-    # # generate data according to the graph
-    # true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
-    # X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
-    # X = X - np.mean(X, axis=0)  # centre the data
+    # generate data according to the graph
+    true_sigma = np.linalg.inv(np.eye(dim) - beta) @ omega @ np.linalg.inv((np.eye(dim) - beta).T)
+    X = np.random.multivariate_normal([0] * dim, true_sigma, size=size)
+    X = X - np.mean(X, axis=0)  # centre the data
 
-    # data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
+    data = pd.DataFrame({"A": X[:, 0], "B": X[:, 1], "C": X[:, 2], "D": X[:, 3]})
 
     # A = np.random.uniform(low=0, high=10, size=100)
     # Z = np.random.uniform(low=0, high=5, size=100)
@@ -511,11 +511,10 @@ if __name__ == "__main__":
 
     # data = pd.DataFrame({"A": A, "B": B, "C": C, "D": D})
 
-    # learn = Discovery(lamda=0.05)
-    # best_G = learn.discover_admg(data, admg_class="bowfree", verbose=True)
-    # print(learn.convergence_)
-    # print(learn.G_.di_edges)
-    # print(learn.G_.bi_edges)
+    learn = Discovery(lamda=0.05)
+    G, convergence, output = learn._discover_admg(data, admg_class = "none", verbose=True)
+    print(G.di_edges)
+    print(G.bi_edges)
 
     # # convert ADMG to PAG
     # # pag = admg_to_pag(best_G)
@@ -531,17 +530,17 @@ if __name__ == "__main__":
     # ancestrality_loss_result = ancestrality_loss(W1, W2)
     # print("ancestrality_loss", ancestrality_loss_result)
 
-    np.random.seed(0)
-    #z = np.random.uniform(low=0, high=3, size=100)
-    x = np.random.uniform(low=-3, high=3, size=100)
-    epsilon = np.random.normal(0, 1, 100) 
-    y = np.array([np.sin(x)*10 + epsilon for x, epsilon in zip(x, epsilon)])
-    X = np.column_stack((x, y))
-    data = pd.DataFrame(X, columns=['x', 'y'])
+    # np.random.seed(0)
+    # #z = np.random.uniform(low=0, high=3, size=100)
+    # x = np.random.uniform(low=-3, high=3, size=100)
+    # epsilon = np.random.normal(0, 1, 100) 
+    # y = np.array([np.sin(x)*10 + epsilon for x, epsilon in zip(x, epsilon)])
+    # X = np.column_stack((x, y))
+    # data = pd.DataFrame(X, columns=['x', 'y'])
 
     # Step 1: Define the covariance matrix
-    # True_Sigma = np.array([[0.8, 0.3],    # Variance of X is 1, covariance between X and Y is 0.8
-    #                 [0.3, 0.8]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    # True_Sigma = np.array([[1, 0.8],    # Variance of X is 1, covariance between X and Y is 0.8
+    #                 [0.8, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
 
     # epsilon = np.random.multivariate_normal([0] * 2, True_Sigma, size=200)
     # np.random.seed(0)
@@ -552,18 +551,16 @@ if __name__ == "__main__":
     # y = np.array([np.sin(x)*10 + epsilon2 for x, epsilon2 in zip(x, epsilon2)])
     # X = np.column_stack((true_x, y))
     # data = pd.DataFrame(X, columns=['x', 'y'])
-    # covariance = data.cov()
-    # print("covariance: ", covariance)
 
-    learn = Discovery(lamda=0.05)
-    G, convergence, output = learn._discover_admg(data, admg_class = "none", verbose=True)
-    y_hat = output[:, 1]
-    print(G.di_edges)
-    print(G.bi_edges)
-    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
-    plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.legend()
-    plt.show()
+    # learn = Discovery(lamda=0.05)
+    # G, convergence, output = learn._discover_admg(data, admg_class = "none", verbose=True)
+    # y_hat = output[:, 1]
+    # print(G.di_edges)
+    # print(G.bi_edges)
+    # plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    # plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
+    # plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
+    # plt.xlabel('x')
+    # plt.ylabel('y')
+    # plt.legend()
+    # plt.show()
