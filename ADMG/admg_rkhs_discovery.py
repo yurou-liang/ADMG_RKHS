@@ -123,7 +123,7 @@ def SPDLogCholesky(M: torch.tensor, d):
     # Make the Cholesky decomposition matrix
     L = M_strict + torch.diag(torch.exp(D))
     # Invert the Cholesky decomposition
-    Sigma = torch.matmul(L, L.t()) + 1e-6 * torch.eye(d) # numerical stability
+    Sigma = torch.matmul(L, L.t()) #+ 1e-6 * torch.eye(d) # numerical stability
     return Sigma
 
 def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
@@ -137,8 +137,8 @@ def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
     # cov = cov[tril_indices[0], tril_indices[1]]
     cov = torch.triu(cov, diagonal=1)
     # print("cov: ", cov)
-    # Sigma_init = cov + cov.T + torch.diag(Sigma.diag())
-    Sigma_init = cov + cov.T + torch.eye(d)
+    Sigma_init = cov + cov.T + torch.diag(Sigma.diag())
+    # Sigma_init = cov + cov.T + torch.eye(d)
     L = torch.linalg.cholesky(Sigma_init)
     # Take strictly lower triangular matrix
     M_strict = L.tril(diagonal=-1)
@@ -378,8 +378,12 @@ class RKHS_discovery:
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
             score = mle_loss_prior + complexity_reg + sparsity_reg 
+            cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
             # score = mse_loss_prior + complexity_reg + sparsity_reg
-            obj = mu * score + penalty + torch.norm(Sigma_prior - torch.eye(Sigma_prior.size(0)) , p='fro') ** 2
+            obj = mu * score + penalty + mu*cov_regularizer #+ mu*torch.norm(Sigma_prior - torch.eye(Sigma_prior.size(0)) , p='fro') ** 2
+            # eax2 = torch.exp((torch.log(torch.tensor(self.model.n, dtype=torch.float64)) * torch.abs(Sigma_prior)))
+            # tanh = (eax2 - 1) / (eax2 + 1)
+            # obj = mu * score + penalty + torch.sum(tanh) * 0.5
             # print("penalty: ", penalty)
             # print("obj: ", obj)
             obj.backward()
@@ -427,7 +431,7 @@ class RKHS_discovery:
         lambda2: torch.float64 = .005,
         T: torch.int = 4, 
         mu_init: torch.float64 = 0.1, 
-        mu_factor: torch.float64 = .1, 
+        mu_factor: torch.float64 = .5, 
         s: torch.float64 = 1.0,
         warm_iter: torch.int = 5e3, 
         max_iter: torch.int = 8e3, 
