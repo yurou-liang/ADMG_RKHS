@@ -17,7 +17,7 @@ import copy
 import matplotlib.pyplot as plt
 from utils.admg2pag import admg_to_pag, pprint_pag
 import pandas as pd
-from notears.lbfgsb_scipy import LBFGSBScipy
+from lbfgsb_scipy import LBFGSBScipy
 # from sklearn.preprocessing import StandardScaler
 
 torch.set_default_dtype(torch.float64)
@@ -364,6 +364,7 @@ class RKHS_discovery:
        h_new = None
        optimizer = LBFGSBScipy(self.model.parameters())
        while rho < rho_max:
+           print("rho: ", rho)
            def closure():
                 optimizer.zero_grad()
                 W1, W2 = self.model.fc1_to_adj()
@@ -371,10 +372,15 @@ class RKHS_discovery:
                 penalty = 0.5 * rho * h_val * h_val + alpha * h_val
                 x_est_prior, Sigma_prior = self.model.forward()
                 mle_loss_prior = self.model.mle_loss(x_est_prior, Sigma_prior)
+                mse_loss_prior = self.model.mse(x_est_prior)
                 complexity_reg = self.model.complexity_reg(lambda1, tau)
                 sparsity_reg = self.model.sparsity_reg(W1, tau)
-                score = mle_loss_prior + complexity_reg + sparsity_reg 
+                cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
+                score = mle_loss_prior + complexity_reg + sparsity_reg + cov_regularizer
                 obj = score + penalty
+                print("mle: ", mle_loss_prior)
+                print("mse: ", mse_loss_prior)
+                print("h_val: ", h_val)
                 obj.backward()
                 return obj
            optimizer.step(closure)  # NOTE: updates model in-place
@@ -388,10 +394,11 @@ class RKHS_discovery:
        alpha += rho * h_new
        return rho, alpha, h_new
     
-    def notears_nonlinear(self, lambda1, tau, max_iter: int = 100, h_tol: float = 1e-8, rho_max: float = 1e+16,
+    def fit(self, lambda1, tau, max_iter: int = 100, h_tol: float = 1e-8, rho_max: float = 1e+16,
                             w_threshold: float = 0.3):
         rho, alpha, h = 1.0, 0.0, np.inf
-        for _ in range(max_iter):
+        for i in range(max_iter):
+            print("iteration: ", i)
             rho, alpha, h = self.dual_ascent_step(rho, alpha, h, lambda1, tau, rho_max)
             if h <= h_tol or rho >= rho_max:
                 break
