@@ -425,7 +425,7 @@ class Discovery:
         final_W1[np.abs(final_W1) < w_threshold] = 0
         final_W2[np.abs(final_W2) < w_threshold] = 0
         output = self.X_@final_W1
-        return self.get_graph(final_W1, final_W2, data.columns, w_threshold), convergence, output
+        return self.get_graph(final_W1, final_W2, data.columns, w_threshold), convergence, output, final_W1, final_W2
 
     def discover_admg(self, data, admg_class, tiers=None, unconfounded_vars=[], max_iter=100,
                       h_tol=1e-8, rho_max=1e+16, num_restarts=5, w_threshold=0.05,
@@ -479,7 +479,7 @@ class Discovery:
 if __name__ == "__main__":
 
     # example usage
-    np.random.seed(42)
+    #np.random.seed(42)
     size = 100
     dim = 4
 
@@ -512,7 +512,9 @@ if __name__ == "__main__":
     # data = pd.DataFrame({"A": A, "B": B, "C": C, "D": D})
 
     learn = Discovery(lamda=0.05)
-    G, convergence, output = learn._discover_admg(data, admg_class = "none", verbose=True)
+    G, convergence, output, final_W1, final_W2= learn._discover_admg(data, admg_class = "none", verbose=True)
+    print("final_W1: ", final_W1)
+    print("final_W2: ", final_W2)
     print(G.di_edges)
     print(G.bi_edges)
 
