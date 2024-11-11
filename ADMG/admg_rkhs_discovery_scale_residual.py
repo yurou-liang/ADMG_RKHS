@@ -378,6 +378,7 @@ class RKHS_discovery:
         optimizer_theta = optim.Adam(theta_params, lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
         if lr_decay is True:
             scheduler_theta = optim.lr_scheduler.ExponentialLR(optimizer_theta, gamma=0.8)
+
         # First stage optimization - freeze M
         self.model.M.requires_grad_(False)
         obj_prev = 1e16
@@ -443,12 +444,12 @@ class RKHS_discovery:
                 obj_prev = obj_new
                 pbar.update(1)
 
-        # Stage 2: Optimize Sigma (M)
-        self.M.requires_grad_(True)
-        self.alpha.requires_grad_(False)
-        self.beta.requires_grad_(False)
+        # Stage 2: Optimize Sigma (M), fix theta
+        self.model.M.requires_grad_(True)
+        self.model.alpha.requires_grad_(False)
+        self.model.beta.requires_grad_(False)
 
-        sigma_params = self.get_sigma_params()
+        sigma_params = self.model.get_sigma_params()
         optimizer_sigma = optim.Adam(sigma_params, lr=lr*0.1, betas=(.99,.999))
         if lr_decay:
             scheduler_sigma = optim.lr_scheduler.ExponentialLR(optimizer_sigma, gamma=0.9)
@@ -483,6 +484,7 @@ class RKHS_discovery:
                 scheduler_sigma.step()
             if i % self.checkpoint == 0 or i == max_iter-1:
                 obj_new = obj.item()
+                self.vprint(f"\n freeze theta, update Sigma")
                 self.vprint(f"\nmu {mu}")
                 self.vprint(f"\nInner iteration {i}")
                 self.vprint(f'\th(W(model)): {penalty.item()}')
@@ -517,8 +519,8 @@ class RKHS_discovery:
         mu_init: torch.float64 = 0.1, 
         mu_factor: torch.float64 = .5, 
         s: torch.float64 = 1.0,
-        warm_iter: torch.int = 5e3, 
-        max_iter: torch.int = 8e3, 
+        warm_iter: torch.int = 8e3, 
+        max_iter: torch.int = 1e4, 
         lr: torch.float64 = .005, 
         w_threshold: torch.float64 = 0.3, 
         checkpoint: torch.int = 1000,
