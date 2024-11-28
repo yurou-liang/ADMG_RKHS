@@ -1,0 +1,16 @@
+{"time":"2024-11-18T14:48:13.613376+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-18T14:48:13.613431+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241118_144813-zv65x7mp/logs/debug-core.log"}
+{"time":"2024-11-18T14:48:13.85353+01:00","level":"INFO","msg":"created new stream","id":"zv65x7mp"}
+{"time":"2024-11-18T14:48:13.853631+01:00","level":"INFO","msg":"stream: started","id":"zv65x7mp"}
+{"time":"2024-11-18T14:48:13.853676+01:00","level":"INFO","msg":"sender: started","stream_id":"zv65x7mp"}
+{"time":"2024-11-18T14:48:13.853738+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"zv65x7mp"}
+{"time":"2024-11-18T14:48:13.853687+01:00","level":"INFO","msg":"handler: started","stream_id":"zv65x7mp"}
+{"time":"2024-11-18T14:48:14.115845+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2024-11-18T15:04:23.526932+01:00","level":"INFO","msg":"stream: closing","id":"zv65x7mp"}
+{"time":"2024-11-18T15:04:23.526967+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2024-11-18T15:04:23.527462+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2024-11-18T15:04:24.320564+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2024-11-18T15:04:24.639655+01:00","level":"INFO","msg":"handler: closed","stream_id":"zv65x7mp"}
+{"time":"2024-11-18T15:04:24.63967+01:00","level":"INFO","msg":"sender: closed","stream_id":"zv65x7mp"}
+{"time":"2024-11-18T15:04:24.639667+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"zv65x7mp"}
+{"time":"2024-11-18T15:04:24.639863+01:00","level":"INFO","msg":"stream: closed","id":"zv65x7mp"}

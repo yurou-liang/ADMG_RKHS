@@ -1,0 +1,8 @@
+{"time":"2024-11-16T16:51:54.728651+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-16T16:51:54.728687+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241116_165146-mkpyygy4/logs/debug-core.log"}
+{"time":"2024-11-16T16:51:54.840442+01:00","level":"INFO","msg":"created new stream","id":"mkpyygy4"}
+{"time":"2024-11-16T16:51:54.840477+01:00","level":"INFO","msg":"stream: started","id":"mkpyygy4"}
+{"time":"2024-11-16T16:51:54.840483+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"mkpyygy4"}
+{"time":"2024-11-16T16:51:54.840494+01:00","level":"INFO","msg":"handler: started","stream_id":"mkpyygy4"}
+{"time":"2024-11-16T16:51:54.8405+01:00","level":"INFO","msg":"sender: started","stream_id":"mkpyygy4"}
+{"time":"2024-11-16T16:51:55.219223+01:00","level":"INFO","msg":"Starting system monitor"}

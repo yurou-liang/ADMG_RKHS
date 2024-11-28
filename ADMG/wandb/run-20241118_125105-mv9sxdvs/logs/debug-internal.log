@@ -1,0 +1,16 @@
+{"time":"2024-11-18T12:51:05.674832+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-18T12:51:05.675081+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241118_125105-mv9sxdvs/logs/debug-core.log"}
+{"time":"2024-11-18T12:51:06.030035+01:00","level":"INFO","msg":"created new stream","id":"mv9sxdvs"}
+{"time":"2024-11-18T12:51:06.030083+01:00","level":"INFO","msg":"stream: started","id":"mv9sxdvs"}
+{"time":"2024-11-18T12:51:06.030143+01:00","level":"INFO","msg":"handler: started","stream_id":"mv9sxdvs"}
+{"time":"2024-11-18T12:51:06.030144+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"mv9sxdvs"}
+{"time":"2024-11-18T12:51:06.030205+01:00","level":"INFO","msg":"sender: started","stream_id":"mv9sxdvs"}
+{"time":"2024-11-18T12:51:06.375285+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2024-11-18T12:52:16.73135+01:00","level":"INFO","msg":"stream: closing","id":"mv9sxdvs"}
+{"time":"2024-11-18T12:52:16.73138+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2024-11-18T12:52:16.731764+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2024-11-18T12:52:19.052093+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2024-11-18T12:52:19.577196+01:00","level":"INFO","msg":"handler: closed","stream_id":"mv9sxdvs"}
+{"time":"2024-11-18T12:52:19.577208+01:00","level":"INFO","msg":"sender: closed","stream_id":"mv9sxdvs"}
+{"time":"2024-11-18T12:52:19.577204+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"mv9sxdvs"}
+{"time":"2024-11-18T12:52:19.577274+01:00","level":"INFO","msg":"stream: closed","id":"mv9sxdvs"}

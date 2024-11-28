@@ -305,7 +305,7 @@ class Discovery:
         return G
 
     def _discover_admg(self, data, admg_class, tiers=None, unconfounded_vars=[], max_iter=100,
-                       h_tol=1e-8, rho_max=1e+16, w_threshold=0.05,
+                       h_tol=1e-8, rho_max=1e+16, w_threshold=0.00,
                        ricf_increment=1, ricf_tol=1e-4, verbose=False):
         """
         Internal function for running the structure learning procedure once.

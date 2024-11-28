@@ -1,0 +1,19 @@
+{"time":"2024-11-16T17:18:54.220651+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-16T17:18:54.221314+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241116_171854-3rxcb3ky/logs/debug-core.log"}
+{"time":"2024-11-16T17:18:54.334911+01:00","level":"INFO","msg":"created new stream","id":"3rxcb3ky"}
+{"time":"2024-11-16T17:18:54.335081+01:00","level":"INFO","msg":"stream: started","id":"3rxcb3ky"}
+{"time":"2024-11-16T17:18:54.335251+01:00","level":"INFO","msg":"handler: started","stream_id":"3rxcb3ky"}
+{"time":"2024-11-16T17:18:54.335225+01:00","level":"INFO","msg":"sender: started","stream_id":"3rxcb3ky"}
+{"time":"2024-11-16T17:18:54.335239+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"3rxcb3ky"}
+{"time":"2024-11-16T17:18:54.634479+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2024-11-16T17:20:30.503226+01:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/saytoorou-technical-university-of-munich/ADMG/3rxcb3ky/file_stream"}
+{"time":"2024-11-16T17:20:37.756475+01:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/saytoorou-technical-university-of-munich/ADMG/3rxcb3ky/file_stream"}
+{"time":"2024-11-16T17:20:54.761224+01:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2024-11-16T17:27:13.203751+01:00","level":"INFO","msg":"stream: closing","id":"3rxcb3ky"}
+{"time":"2024-11-16T17:27:13.203819+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2024-11-16T17:27:13.204223+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2024-11-16T17:27:16.072353+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2024-11-16T17:27:16.267753+01:00","level":"INFO","msg":"handler: closed","stream_id":"3rxcb3ky"}
+{"time":"2024-11-16T17:27:16.267782+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"3rxcb3ky"}
+{"time":"2024-11-16T17:27:16.267818+01:00","level":"INFO","msg":"sender: closed","stream_id":"3rxcb3ky"}
+{"time":"2024-11-16T17:27:16.268227+01:00","level":"INFO","msg":"stream: closed","id":"3rxcb3ky"}

@@ -1,0 +1,17 @@
+{"time":"2024-11-16T16:51:36.540821+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-16T16:51:36.54091+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241116_165136-d7bz7pw8/logs/debug-core.log"}
+{"time":"2024-11-16T16:51:37.106898+01:00","level":"INFO","msg":"created new stream","id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:37.107086+01:00","level":"INFO","msg":"stream: started","id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:37.107319+01:00","level":"INFO","msg":"handler: started","stream_id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:37.107337+01:00","level":"INFO","msg":"sender: started","stream_id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:37.107339+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:37.461956+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2024-11-16T16:51:38.755341+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2024-11-16T16:51:38.75566+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2024-11-16T16:51:39.759444+01:00","level":"INFO","msg":"handler: operation stats","stats":{"operations":[{"desc":"uploading artifact run-d7bz7pw8-loss_comparison_t0_table","runtime_seconds":1.603532833},{"desc":"uploading artifact run-d7bz7pw8-sigma_elements_t0_table","runtime_seconds":1.092761792},{"desc":"uploading config.yaml","runtime_seconds":0.415027209,"progress":"3.4KB/3.4KB"}],"total_operations":3}}
+{"time":"2024-11-16T16:51:42.840338+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2024-11-16T16:51:44.061889+01:00","level":"INFO","msg":"stream: closing","id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:44.061956+01:00","level":"INFO","msg":"handler: closed","stream_id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:44.061964+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:44.061974+01:00","level":"INFO","msg":"sender: closed","stream_id":"d7bz7pw8"}
+{"time":"2024-11-16T16:51:44.062085+01:00","level":"INFO","msg":"stream: closed","id":"d7bz7pw8"}

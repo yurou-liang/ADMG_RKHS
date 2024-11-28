@@ -1,0 +1,17 @@
+{"time":"2024-11-16T16:51:44.064258+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-16T16:51:44.064286+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241116_165138-36qpe7il/logs/debug-core.log"}
+{"time":"2024-11-16T16:51:44.177063+01:00","level":"INFO","msg":"created new stream","id":"36qpe7il"}
+{"time":"2024-11-16T16:51:44.177111+01:00","level":"INFO","msg":"stream: started","id":"36qpe7il"}
+{"time":"2024-11-16T16:51:44.177134+01:00","level":"INFO","msg":"handler: started","stream_id":"36qpe7il"}
+{"time":"2024-11-16T16:51:44.177152+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"36qpe7il"}
+{"time":"2024-11-16T16:51:44.177168+01:00","level":"INFO","msg":"sender: started","stream_id":"36qpe7il"}
+{"time":"2024-11-16T16:51:44.4907+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2024-11-16T16:51:46.29493+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2024-11-16T16:51:46.295191+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2024-11-16T16:51:47.296807+01:00","level":"INFO","msg":"handler: operation stats","stats":{"operations":[{"desc":"uploading artifact run-36qpe7il-sigma_elements_t0_table","runtime_seconds":2.339198042},{"desc":"uploading artifact run-36qpe7il-loss_comparison_t0_table","runtime_seconds":2.066538584},{"desc":"uploading artifact run-36qpe7il-sigma_elements_t0_table","runtime_seconds":1.8444737500000001},{"desc":"uploading artifact run-36qpe7il-loss_comparison_t0_table","runtime_seconds":1.59776925},{"desc":"uploading artifact run-36qpe7il-sigma_elements_t0_table","runtime_seconds":1.410190542},{"desc":"uploading artifact run-36qpe7il-loss_comparison_t0_table","runtime_seconds":1.20742325},{"desc":"uploading artifact run-36qpe7il-sigma_elements_t0_table","runtime_seconds":1.029542},{"desc":"uploading output.log","runtime_seconds":0.64210875,"progress":"757B/757B"}],"total_operations":8}}
+{"time":"2024-11-16T16:51:53.490409+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2024-11-16T16:51:54.725975+01:00","level":"INFO","msg":"stream: closing","id":"36qpe7il"}
+{"time":"2024-11-16T16:51:54.726003+01:00","level":"INFO","msg":"handler: closed","stream_id":"36qpe7il"}
+{"time":"2024-11-16T16:51:54.726017+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"36qpe7il"}
+{"time":"2024-11-16T16:51:54.726039+01:00","level":"INFO","msg":"sender: closed","stream_id":"36qpe7il"}
+{"time":"2024-11-16T16:51:54.726205+01:00","level":"INFO","msg":"stream: closed","id":"36qpe7il"}

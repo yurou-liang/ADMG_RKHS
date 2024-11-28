@@ -175,6 +175,7 @@ class ADMG_RKHSDagma(nn.Module):
         self.I = torch.eye(self.d)
         # self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
         Sigma = torch.cov(self.x.T)
+        # Sigma = self.I
         self.M = reverse_SPDLogCholesky(self.d, Sigma)
         self.M = nn.Parameter(self.M)
         # self.L = nn.Parameter(self.L)
@@ -260,13 +261,11 @@ class ADMG_RKHSDagma(nn.Module):
     def mle_loss(self, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
         # mle = torch.trace((self.x - x_est)@torch.linalg.inv(self.Sigma)@((self.x - x_est).T)) # Check if Sigma invertible !!!!, aslo divide by n
         # Sigma = self.I
-        residuals = self.x - x_est
-        mean_residuals = torch.mean(residuals, dim=0, keepdim=True)
-        normalized_residuals = residuals - mean_residuals
-        tmp = torch.linalg.solve(Sigma, (normalized_residuals).T)
-        mle = torch.trace((normalized_residuals)@tmp)/self.n
+        tmp = torch.linalg.solve(Sigma, (self.x - x_est).T)
+        mle = torch.trace((self.x - x_est)@tmp)/self.n
         sign, logdet = torch.linalg.slogdet(Sigma)
         mle += logdet
+        return mle
         return mle
     
     def mse(self, x_est: torch.tensor): # [1, 1]
@@ -433,8 +432,8 @@ class RKHS_discovery:
                 self.vprint(f'\tW2: {Sigma_prior}')
                 self.vprint(f'\tstructure loss: {penalty-h_val}')
                 self.vprint(f'\tSigma: {Sigma_posterior}')
-                # self.vprint(f'\talpha: {self.model.alpha}')
-                # self.vprint(f'\tbeta: {self.model.beta}')
+                # self.vprint(f'\talpha: {self.model.alpha.grad}')
+                # self.vprint(f'\tbeta: {self.model.beta.grad}')
                 self.vprint("Check M: ", self.model.M.grad)
                 self.vprint("Check y: ", x_est_posterior[:, 1])
                 self.vprint("Check eigenvalues: ", eigenvalues.min().item())
@@ -450,7 +449,7 @@ class RKHS_discovery:
         self.model.beta.requires_grad_(False)
 
         sigma_params = self.model.get_sigma_params()
-        optimizer_sigma = optim.Adam(sigma_params, lr=lr*0.1, betas=(.99,.999))
+        optimizer_sigma = optim.Adam(sigma_params, lr=lr*10, betas=(.99,.999))
         if lr_decay:
             scheduler_sigma = optim.lr_scheduler.ExponentialLR(optimizer_sigma, gamma=0.9)
         
@@ -519,8 +518,8 @@ class RKHS_discovery:
         mu_init: torch.float64 = 0.1, 
         mu_factor: torch.float64 = .5, 
         s: torch.float64 = 1.0,
-        warm_iter: torch.int = 8e3, 
-        max_iter: torch.int = 1e4, 
+        warm_iter: torch.int = 5e3, 
+        max_iter: torch.int = 8e3, 
         lr: torch.float64 = .005, 
         w_threshold: torch.float64 = 0.3, 
         checkpoint: torch.int = 1000,

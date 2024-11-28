@@ -1,0 +1,104 @@
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.1
+
+Inner iteration 0
+	h(W(model)): 4.013654668472349e-08
+	score(model): 8.51942665487928
+	 mle: 70.27446669187691
+	 mse: 37.88628826617987
+	W1: tensor([[0.0001, 0.0001, 0.0001, 0.0001],
+        [0.0001, 0.0001, 0.0001, 0.0001],
+        [0.0001, 0.0001, 0.0001, 0.0001],
+        [0.0001, 0.0001, 0.0001, 0.0001]], grad_fn=<SqrtBackward0>)
+	cycle loss: 4.0000001067124196e-08
+	structure loss: 1.3654561759929712e-10
+	Sigma: tensor([[ 1.0000,  0.0359,  0.0422, -0.0183],
+        [ 0.0359,  1.0000, -0.0376,  0.0446],
+        [ 0.0422, -0.0376,  1.0000, -0.0047],
+        [-0.0183,  0.0446, -0.0047,  1.0000]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 0.0487,  0.0000,  0.0000,  0.0000],
+        [-0.0428,  0.0684,  0.0000,  0.0000],
+        [-1.0910, -0.0477, -7.6797,  0.0000],
+        [-0.0346, -1.2090, -0.6179, -8.5792]])
+Check eigenvalues:  0.9094650647261625
+
+mu 0.1
+
+Inner iteration 1000
+	h(W(model)): 0.11932743364932477
+	score(model): -0.6054668998662078
+	 mle: -7.2702873870330205
+	 mse: 1.1012240688615922
+	W1: tensor([[1.0000e-04, 3.6557e-01, 7.6334e+00, 2.2194e+00],
+        [5.2579e-01, 1.0000e-04, 2.9393e+00, 7.3980e+00],
+        [1.0484e-02, 1.6096e-02, 1.0000e-04, 2.9160e-01],
+        [2.1442e-02, 1.1532e-02, 4.7534e-01, 1.0000e-04]],
+       grad_fn=<SqrtBackward0>)
+	cycle loss: 0.09211528074686903
+	structure loss: 0.02721215290245574
+	Sigma: tensor([[ 2.0337e-01,  1.7434e-01, -2.5073e-03,  1.7475e-04],
+        [ 1.7434e-01,  1.4975e-01,  7.9099e-03, -1.6479e-04],
+        [-2.5073e-03,  7.9099e-03,  6.3216e-01, -1.9044e-01],
+        [ 1.7475e-04, -1.6479e-04, -1.9044e-01,  1.0585e+00]],
+       grad_fn=<MmBackward0>)
+Check M:  tensor([[-0.0197,  0.0000,  0.0000,  0.0000],
+        [ 0.0477,  0.1395,  0.0000,  0.0000],
+        [-0.0056, -0.2010,  0.0909,  0.0000],
+        [ 0.0080, -0.1137, -0.0682,  0.0175]])
+Check eigenvalues:  7.264215461450634e-05
+
+mu 0.1
+
+Inner iteration 2000
+	h(W(model)): 0.11350106366869708
+	score(model): -0.4506961464696305
+	 mle: -5.6502932189256825
+	 mse: 1.166350728155227
+	W1: tensor([[1.0000e-04, 3.2395e-01, 7.4467e+00, 2.1064e+00],
+        [4.5492e-01, 1.0000e-04, 1.6415e+00, 7.5019e+00],
+        [1.3069e-02, 2.3700e-02, 1.0000e-04, 3.8720e-01],
+        [2.6183e-02, 1.5518e-02, 3.1537e-01, 1.0000e-04]],
+       grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0891898613033133
+	structure loss: 0.024311202365383783
+	Sigma: tensor([[ 2.1042e-01,  1.7439e-01, -4.3247e-03,  1.7411e-02],
+        [ 1.7439e-01,  1.4644e-01,  1.5986e-02, -2.9631e-04],
+        [-4.3247e-03,  1.5986e-02,  5.2930e-01,  1.4459e-01],
+        [ 1.7411e-02, -2.9631e-04,  1.4459e-01,  5.4074e-01]],
+       grad_fn=<MmBackward0>)
+Check M:  tensor([[-0.0558,  0.0000,  0.0000,  0.0000],
+        [ 0.1580,  0.0087,  0.0000,  0.0000],
+        [-0.0805, -0.1482,  0.0397,  0.0000],
+        [ 0.1836,  0.2145, -0.2333,  0.0672]])
+Check eigenvalues:  0.0002170774032066563
+Traceback (most recent call last):
+  File "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/admg_rkhs_discovery.py", line 737, in <module>
+    W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 0.1, lr=0.03, w_threshold=0.0)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/admg_rkhs_discovery.py", line 563, in fit
+    success = self.minimize(inner_iter, lr, lambda1, tau, lambda2, mu, s_cur,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/admg_rkhs_discovery.py", line 387, in minimize
+    W1, W2 = self.model.fc1_to_adj()
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/admg_rkhs_discovery.py", line 247, in fc1_to_adj
+    _, Sigma = self.forward()
+               ^^^^^^^^^^^^^^
+  File "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/admg_rkhs_discovery.py", line 228, in forward
+    output2 = torch.einsum('jal, jila -> ijl', self.beta, self.grad_K2) # [n, d, n]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/admg/lib/python3.11/site-packages/torch/functional.py", line 374, in einsum
+    return handle_torch_function(einsum, operands, equation, *operands)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/admg/lib/python3.11/site-packages/torch/overrides.py", line 1630, in handle_torch_function
+    result = mode.__torch_function__(public_api, types, args, kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/admg/lib/python3.11/site-packages/torch/utils/_device.py", line 79, in __torch_function__
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/admg/lib/python3.11/site-packages/torch/functional.py", line 386, in einsum
+    return _VF.einsum(equation, operands)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

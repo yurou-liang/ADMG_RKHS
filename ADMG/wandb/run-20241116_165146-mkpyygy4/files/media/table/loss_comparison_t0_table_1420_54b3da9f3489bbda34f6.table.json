@@ -1,0 +1,1 @@
+{"columns": ["step", "lineKey", "lineVal"], "data": [[473, "MLE Loss (t=0)", 1.134198703308895], [473, "Structure Penalty (t=0)", 0.0455112828163498], [473, "Covariance Regularizer (t=0)", 0.0], [473, "Structure Loss (t=0)", 0.000129306854245885], [473, "Cycle Loss (t=0)", 0.045381975962103915], [473, "Total Loss (t=0)", 0.15926902594067738]]}

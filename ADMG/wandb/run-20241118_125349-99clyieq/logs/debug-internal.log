@@ -1,0 +1,16 @@
+{"time":"2024-11-18T12:53:49.22738+01:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2024-11-18T12:53:49.227431+01:00","level":"INFO","msg":"created symlink","path":"/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/wandb/run-20241118_125349-99clyieq/logs/debug-core.log"}
+{"time":"2024-11-18T12:53:49.339784+01:00","level":"INFO","msg":"created new stream","id":"99clyieq"}
+{"time":"2024-11-18T12:53:49.33994+01:00","level":"INFO","msg":"stream: started","id":"99clyieq"}
+{"time":"2024-11-18T12:53:49.340114+01:00","level":"INFO","msg":"handler: started","stream_id":"99clyieq"}
+{"time":"2024-11-18T12:53:49.34013+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"99clyieq"}
+{"time":"2024-11-18T12:53:49.340132+01:00","level":"INFO","msg":"sender: started","stream_id":"99clyieq"}
+{"time":"2024-11-18T12:53:49.696481+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2024-11-18T13:09:20.778879+01:00","level":"INFO","msg":"stream: closing","id":"99clyieq"}
+{"time":"2024-11-18T13:09:20.778895+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2024-11-18T13:09:20.779189+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2024-11-18T13:09:23.673162+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2024-11-18T13:09:23.98975+01:00","level":"INFO","msg":"handler: closed","stream_id":"99clyieq"}
+{"time":"2024-11-18T13:09:23.98977+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"99clyieq"}
+{"time":"2024-11-18T13:09:23.989925+01:00","level":"INFO","msg":"sender: closed","stream_id":"99clyieq"}
+{"time":"2024-11-18T13:09:23.99016+01:00","level":"INFO","msg":"stream: closed","id":"99clyieq"}

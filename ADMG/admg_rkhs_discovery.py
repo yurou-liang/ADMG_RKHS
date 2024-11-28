@@ -17,6 +17,7 @@ import copy
 import matplotlib.pyplot as plt
 from utils.admg2pag import admg_to_pag, pprint_pag
 import pandas as pd
+import wandb
 # from sklearn.preprocessing import StandardScaler
 
 torch.set_default_dtype(torch.float64)
@@ -137,8 +138,14 @@ def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
     # cov = cov[tril_indices[0], tril_indices[1]]
     cov = torch.triu(cov, diagonal=1)
     # print("cov: ", cov)
-    Sigma_init = cov + cov.T + torch.diag(Sigma.diag())
-    # Sigma_init = cov + cov.T + torch.eye(d)
+    # Sigma = torch.eye(d)
+    # Sigma_init = cov + cov.T + torch.diag(Sigma.diag())
+    # Sigma_init = torch.diag(Sigma.diag())
+    Sigma_init = cov + cov.T + torch.eye(d)
+    # Sigma_init = torch.tensor([[1, 0, 0, 0],    # Variance of X is 1, covariance between X and Y is 0.8
+    #             [0, 1, 0, 0],
+    #             [0, 0, 1, 0.6],
+    #             [0, 0, 0.6, 1]])
     L = torch.linalg.cholesky(Sigma_init)
     # Take strictly lower triangular matrix
     M_strict = L.tril(diagonal=-1)
@@ -174,7 +181,9 @@ class ADMG_RKHSDagma(nn.Module):
         # initialize the symmetric bidirected adjacency matrix with 0 on the diagonal, entries are uniformly picked from [-0.1, 0.1]
         self.I = torch.eye(self.d)
         # self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
-        Sigma = torch.cov(self.x.T)
+        # Sigma = torch.cov(self.x.T)
+        Sigma = torch.eye(self.d)
+
         self.M = reverse_SPDLogCholesky(self.d, Sigma)
         self.M = nn.Parameter(self.M)
         # self.L = nn.Parameter(self.L)
@@ -317,6 +326,7 @@ class RKHS_discovery:
             lr_decay: float = False, 
             tol: float = 1e-6, 
             pbar: typing.Optional[tqdm] = None,
+            t = None
     ) -> bool:
         r"""
         Solves the optimization problem: 
@@ -355,6 +365,20 @@ class RKHS_discovery:
             ``True`` if the optimization succeded. This can be ``False`` when at any iteration, the model's adjacency matrix 
             got outside of the domain of M-matrices.
         """
+
+        # Init Wandb
+        # if t == 0:
+        #     wandb.init(
+        #         project="ADMG",
+        #         config={
+        #             "learning_rate": lr,
+        #             "lambda1": lambda1,
+        #             "tau": tau,
+        #             "lambda2": lambda2,
+        #             "mu": mu,
+        #             "s": s
+        #         }
+        #     )
         self.vprint(f'\nMinimize s={s} -- lr={lr}')
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
@@ -386,6 +410,40 @@ class RKHS_discovery:
             # obj = mu * score + penalty + torch.sum(tanh) * 0.5
             # print("penalty: ", penalty)
             # print("obj: ", obj)
+
+
+# Log basic metrics
+            # metrics = {
+            #     "T": t,
+            #     "iteration": i,
+            #     f"total_loss_t{t}": obj.item(),
+            #     f"mle_loss_t{t}": mle_loss_prior.item(),
+            #     f"complexity_reg_t{t}": complexity_reg.item(),
+            #     f"sparsity_reg_t{t}": sparsity_reg.item(),
+            #     f"score_t{t}": score.item(),
+            #     f"structure_loss_t{t}": (penalty-h_val).item(),
+            #     f"cycle_loss_t{t}": h_val.item(),
+            #     f"penalty_t{t}": penalty.item(),
+            #     f"cov_regularizer_t{t}": cov_regularizer.item(),
+            #     f"sigma_0_1_t{t}": Sigma_prior[0, 1].item(),
+            #     f"sigma_2_3_t{t}": Sigma_prior[2, 3].item()
+            # }
+            # wandb.log(metrics)
+
+            
+            # # Create separate Sigma tracking plot for each t
+            # wandb.log({
+            #     f"sigma_elements_t{t}": wandb.plot.line_series(
+            #         xs=[i],
+            #         ys=[[Sigma_prior[0, 1].item()]],
+            #         keys=[f"Sigma[0,1] (t={t})"],
+            #         title=f"Sigma Matrix Elements (t={t}, μ={mu:.4f})",
+            #         xname="iteration"
+            #     )
+            # })
+
+
+
             obj.backward()
             optimizer.step()
             x_est_posterior, Sigma_posterior = self.model.forward()
@@ -408,13 +466,13 @@ class RKHS_discovery:
                 self.vprint(f'\t mse: {mse_loss_posterior}')
                 self.vprint(f'\tW1: {W1}')
                 self.vprint(f'\tcycle loss: {h_val}')
-                self.vprint(f'\tW2: {Sigma_prior}')
+                # self.vprint(f'\tW2: {Sigma_prior}')
                 self.vprint(f'\tstructure loss: {penalty-h_val}')
-                self.vprint(f'\tSigma: {Sigma_posterior}')
+                self.vprint(f'\tSigma: {Sigma_prior}')
                 # self.vprint(f'\talpha: {self.model.alpha}')
                 # self.vprint(f'\tbeta: {self.model.beta}')
                 self.vprint("Check M: ", self.model.M.grad)
-                self.vprint("Check y: ", x_est_posterior[:, 1])
+                # self.vprint("Check y: ", x_est_posterior[:, 1])
                 self.vprint("Check eigenvalues: ", eigenvalues.min().item())
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
                     pbar.update(max_iter-i)
@@ -507,7 +565,7 @@ class RKHS_discovery:
                 while success is False:
                     print("success: ", success)
                     success = self.minimize(inner_iter, lr, lambda1, tau, lambda2, mu, s_cur, 
-                                        lr_decay, pbar=pbar)
+                                        lr_decay, pbar=pbar, t =i)
                     if success is False:
                         self.model.load_state_dict(model_copy.state_dict().copy()) # restore the model parameters to last iteration
                         # reset lr, lr_decay, s_cur then update the model
@@ -647,32 +705,42 @@ if __name__ == "__main__":
     # print("W1: ", W1)
     # print("W2: ", W2)
     print("____________________________________________________________________________________________________________________")
+    size = 300
+    dim = 4
 
+    np.random.seed(45)
+    # Step 1: Define the covariance matrix
+    True_Sigma = np.array([[1, 0, 0, 0],    # Variance of X is 1, covariance between X and Y is 0.8
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0.6],
+                    [0, 0, 0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    dim = True_Sigma.shape[0]
+    epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=size)
 
-    # # Toy example: quadratic
-    np.random.seed(0)
-    #z = np.random.uniform(low=0, high=3, size=100)
-    x = np.random.uniform(low=-3, high=3, size=100)
-    epsilon = np.random.normal(0,1, 100) 
-    y = np.array([np.sin(x)*10 + epsilon for x, epsilon in zip(x, epsilon)])
-    X = np.column_stack((x, y))
-    data = pd.DataFrame(X, columns=['x', 'y'])
+    # Optionally, check the empirical covariance matrix
+    empirical_covariance = np.cov(epsilon, rowvar=False)
+    print("Empirical Covariance Matrix:")
+    print(empirical_covariance)
+
+    epsilon1 = epsilon[:, 0]
+    epsilon2 = epsilon[:, 1]
+    epsilon3 = epsilon[:, 2]
+    epsilon4 = epsilon[:, 3]
+    x1 = epsilon1
+    x2 = epsilon2 
+    x3 = np.array([np.sin(x1) + epsilon3 for x1, epsilon3 in zip(x1, epsilon3)])
+    x4 = np.array([x2**2 + epsilon4 for x2, epsilon4 in zip(x2, epsilon4)])
+    X = np.column_stack((x1, x2, x3, x4))
+    data = pd.DataFrame(X, columns=['x1', 'x2', "x3", "x4"])
+    print("data: ", data.head())
+    covariance = data.cov()
+    print("covariance: ", covariance)
+
     eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
-    model2 = RKHS_discovery(eq_model2, admg_class = "bowfree", verbose=True)
-    W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 1.0, lr=0.03, w_threshold=0.0)
+    model2 = RKHS_discovery(eq_model2, admg_class = "none", verbose=True)
+    W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 0.1, lr=0.03, w_threshold=0.0)
     print("W1: ", W1)
     print("W2: ", W2)
-    sign, logdet = torch.linalg.slogdet(torch.tensor(W2))
-    print("logdet: ", logdet)
-    y_hat = output[:, 1].detach().numpy()
-    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
-    plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.legend()
-    plt.show()
-    print("The programm is closed")
     
 
     ### To Do:

@@ -1,0 +1,38 @@
+{
+  "os":  "macOS-15.0.1-arm64-arm-64bit",
+  "python":  "3.11.10",
+  "startedAt":  "2024-11-16T15:51:36.534925Z",
+  "program":  "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/DEBUG.ipynb",
+  "git":  {
+    "remote":  "https://github.com/yurou-liang/ADMG_RKHS.git",
+    "commit":  "2458f9f31addf7c8ad928fa4ff01dfaf9f7e2d22"
+  },
+  "email":  "saytoorou@gmail.com",
+  "root":  "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG",
+  "host":  "Mac.local",
+  "username":  "yurou_liang",
+  "executable":  "/opt/anaconda3/envs/admg/bin/python",
+  "codePathLocal":  "DEBUG.ipynb",
+  "cpu_count":  8,
+  "cpu_count_logical":  8,
+  "disk":  {
+    "/":  {
+      "total":  "494384795648",
+      "used":  "92194353152"
+    }
+  },
+  "memory":  {
+    "total":  "17179869184"
+  },
+  "cpu":  {
+    "count":  8,
+    "countLogical":  8
+  },
+  "apple":  {
+    "name":  "Apple M3",
+    "ecpuCores":  4,
+    "pcpuCores":  4,
+    "gpuCores":  10,
+    "memoryGb":  16
+  }
+}
