@@ -1,0 +1,39 @@
+{
+  "os":  "macOS-15.0.1-arm64-arm-64bit",
+  "python":  "3.11.10",
+  "startedAt":  "2024-12-05T11:41:38.448552Z",
+  "program":  "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG/admg_rkhs_discovery.py",
+  "codePath":  "ADMG/admg_rkhs_discovery.py",
+  "git":  {
+    "remote":  "https://github.com/yurou-liang/ADMG_RKHS.git",
+    "commit":  "6328f26c0f46373c7f4373ba799f11fdea75f930"
+  },
+  "email":  "saytoorou@gmail.com",
+  "root":  "/Users/yurou_liang/Desktop/ADMG_RKHS/ADMG",
+  "host":  "TUMAM04-MPC003.local",
+  "username":  "yurou_liang",
+  "executable":  "/opt/anaconda3/envs/admg/bin/python",
+  "codePathLocal":  "admg_rkhs_discovery.py",
+  "cpu_count":  8,
+  "cpu_count_logical":  8,
+  "disk":  {
+    "/":  {
+      "total":  "494384795648",
+      "used":  "102653538304"
+    }
+  },
+  "memory":  {
+    "total":  "17179869184"
+  },
+  "cpu":  {
+    "count":  8,
+    "countLogical":  8
+  },
+  "apple":  {
+    "name":  "Apple M3",
+    "ecpuCores":  4,
+    "pcpuCores":  4,
+    "gpuCores":  10,
+    "memoryGb":  16
+  }
+}

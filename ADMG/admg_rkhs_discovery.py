@@ -43,6 +43,12 @@ def cycle_loss(W: torch.tensor, s=1):
     h = -logabsdet + d * torch.log(s)
     return h
 
+    # d = len(W)
+    # M = torch.eye(d) + W * W/d
+    # E = torch.matrix_power(M, d - 1)
+    # return torch.sum(E.T * M) - d
+    
+
 
 def ancestrality_loss(W1: torch.tensor, W2: torch.tensor):
     """
@@ -88,7 +94,7 @@ def structure_penalty(W1: torch.tensor, W2: torch.tensor, admg_class):
         penalty = lambda *args, **kwargs: 0
     else:
         raise NotImplemented("Invalid ADMG class")
-    structure_penalty = cycle_loss(W1) + penalty(W1, W2)
+    structure_penalty = cycle_loss(W1) + 0.0001*penalty(W1, W2)
     return structure_penalty
     
 # test with only ancestral loss at first
@@ -426,7 +432,6 @@ class RKHS_discovery:
             #     f"penalty_t{t}": penalty.item(),
             #     f"cov_regularizer_t{t}": cov_regularizer.item(),
             #     f"sigma_0_1_t{t}": Sigma_prior[0, 1].item(),
-            #     f"sigma_2_3_t{t}": Sigma_prior[2, 3].item()
             # }
             # wandb.log(metrics)
 
@@ -705,42 +710,45 @@ if __name__ == "__main__":
     # print("W1: ", W1)
     # print("W2: ", W2)
     print("____________________________________________________________________________________________________________________")
-    size = 300
-    dim = 4
-
-    np.random.seed(45)
+    np.random.seed(42)
     # Step 1: Define the covariance matrix
-    True_Sigma = np.array([[1, 0, 0, 0],    # Variance of X is 1, covariance between X and Y is 0.8
-                    [0, 1, 0, 0],
-                    [0, 0, 1, 0.6],
-                    [0, 0, 0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
-    dim = True_Sigma.shape[0]
-    epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=size)
+    True_Sigma = np.array([[1, 0.6],    # Variance of X is 1, covariance between X and Y is 0.8
+                    [0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
+
+    epsilon = np.random.multivariate_normal([0] * 2, True_Sigma, size=300)
 
     # Optionally, check the empirical covariance matrix
     empirical_covariance = np.cov(epsilon, rowvar=False)
     print("Empirical Covariance Matrix:")
     print(empirical_covariance)
 
+    np.random.seed(0)
     epsilon1 = epsilon[:, 0]
     epsilon2 = epsilon[:, 1]
-    epsilon3 = epsilon[:, 2]
-    epsilon4 = epsilon[:, 3]
-    x1 = epsilon1
-    x2 = epsilon2 
-    x3 = np.array([np.sin(x1) + epsilon3 for x1, epsilon3 in zip(x1, epsilon3)])
-    x4 = np.array([x2**2 + epsilon4 for x2, epsilon4 in zip(x2, epsilon4)])
-    X = np.column_stack((x1, x2, x3, x4))
-    data = pd.DataFrame(X, columns=['x1', 'x2', "x3", "x4"])
-    print("data: ", data.head())
+    # x = np.random.uniform(low=-3, high=3, size=200)
+    x = epsilon1
+    y = np.array([np.sin(x)*10 + epsilon2 for x, epsilon2 in zip(x, epsilon2)])
+    X = np.column_stack((x, y))
+    data = pd.DataFrame(X, columns=['x', 'y'])
     covariance = data.cov()
     print("covariance: ", covariance)
 
     eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
-    model2 = RKHS_discovery(eq_model2, admg_class = "none", verbose=True)
+    model2 = RKHS_discovery(eq_model2, admg_class = "ancestral", verbose=True)
     W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 0.1, lr=0.03, w_threshold=0.0)
     print("W1: ", W1)
     print("W2: ", W2)
+    sign, logdet = torch.linalg.slogdet(torch.tensor(W2))
+    print("logdet: ", logdet)
+    y_hat = output[:, 1].detach().numpy()
+    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.show()
+    print("The programm is closed")
     
 
     ### To Do:

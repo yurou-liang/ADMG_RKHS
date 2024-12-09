@@ -1,0 +1,700 @@
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.1
+
+Inner iteration 0
+	h(W(model)): 2.0000127189853897e-08
+	score(model): 5.180027851387726
+	 mle: 10.050943967167756
+	 mse: 5.353381364490077
+	W1: tensor([[0.0001, 0.0001],
+        [0.0001, 0.0001]], grad_fn=<SqrtBackward0>)
+	cycle loss: 1.999999987845058e-08
+	structure loss: 1.2731140331593058e-13
+	Sigma: tensor([[1.0000, 0.0080],
+        [0.0080, 1.0000]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 0.0180,  0.0000],
+        [-1.2876, -9.9678]])
+Check eigenvalues:  0.9920215476652452
+
+mu 0.1
+
+Inner iteration 1000
+	h(W(model)): 0.028715227113805555
+	score(model): 0.11924703703756881
+	 mle: 0.9036992574672276
+	 mse: 0.5781213656736879
+	W1: tensor([[1.0000e-04, 8.0043e+00],
+        [2.9829e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.02850372322882322
+	structure loss: 0.00021150388498233572
+	Sigma: tensor([[ 0.5567, -0.0057],
+        [-0.0057,  0.5916]], grad_fn=<MmBackward0>)
+Check M:  tensor([[-0.0036,  0.0000],
+        [-0.0522,  0.0012]])
+Check eigenvalues:  0.555821688779702
+
+mu 0.1
+
+Inner iteration 2000
+	h(W(model)): 0.029499268660522743
+	score(model): 0.11717916185034438
+	 mle: 0.8751642997671751
+	 mse: 0.5699834899288286
+	W1: tensor([[1.0000e-04, 8.0120e+00],
+        [3.0316e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.02949843585466061
+	structure loss: 8.328058621331902e-07
+	Sigma: tensor([[ 5.5738e-01, -3.6019e-04],
+        [-3.6019e-04,  5.8379e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 0.0002,  0.0000],
+        [-0.0003,  0.0003]])
+Check eigenvalues:  0.55737608297048
+
+mu 0.1
+
+Inner iteration 3000
+	h(W(model)): 0.029764274341892008
+	score(model): 0.11686683131838842
+	 mle: 0.8693840369063102
+	 mse: 0.5683534788445527
+	W1: tensor([[1.0000e-04, 8.0114e+00],
+        [3.0454e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.029763626088229245
+	structure loss: 6.482536627633317e-07
+	Sigma: tensor([[ 5.5510e-01, -3.1781e-04],
+        [-3.1781e-04,  5.8244e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[0.0002, 0.0000],
+        [0.0001, 0.0001]])
+Check eigenvalues:  0.5550957591006879
+
+mu 0.1
+
+Inner iteration 4000
+	h(W(model)): 0.03003287016195577
+	score(model): 0.11692596347456037
+	 mle: 0.8675590422614634
+	 mse: 0.5678361811733195
+	W1: tensor([[1.0000e-04, 8.0112e+00],
+        [3.0592e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.03003222667345362
+	structure loss: 6.434885021500136e-07
+	Sigma: tensor([[ 5.5448e-01, -3.1664e-04],
+        [-3.1664e-04,  5.8197e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[0.0002, 0.0000],
+        [0.0001, 0.0001]])
+Check eigenvalues:  0.5544773471797909
+
+mu 0.1
+
+Inner iteration 4999
+	h(W(model)): 0.02997957941336629
+	score(model): 0.11679074541663179
+	 mle: 0.8666455330247953
+	 mse: 0.5675772201460293
+	W1: tensor([[1.0000e-04, 8.0116e+00],
+        [3.0564e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.029979158160776453
+	structure loss: 4.21252589834914e-07
+	Sigma: tensor([[ 5.5414e-01, -2.5618e-04],
+        [-2.5618e-04,  5.8177e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[0.0002, 0.0000],
+        [0.0008, 0.0001]])
+Check eigenvalues:  0.5541407404621727
+
+Dagma iter t=2 -- mu: 0.05 ------------------------------
+success:  False
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.05
+
+Inner iteration 0
+	h(W(model)): 0.030085080926414577
+	score(model): 0.07349890406500334
+	 mle: 46.10457924604165
+	 mse: 13.161148039229829
+	W1: tensor([[1.0000e-04, 8.0124e+00],
+        [3.0614e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.030084643576196335
+	structure loss: 4.373502182422606e-07
+	Sigma: tensor([[ 5.5414e-01, -2.6101e-04],
+        [-2.6101e-04,  5.8177e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 5.4606e-05,  0.0000e+00],
+        [-8.0090e-04,  8.0264e-05]])
+Check eigenvalues:  0.5541328540838159
+
+mu 0.05
+
+Inner iteration 1000
+	h(W(model)): 0.007199461695522201
+	score(model): 0.06651477184402742
+	 mle: 1.1844103341664045
+	 mse: 0.6683635323680152
+	W1: tensor([[1.0000e-04, 8.0405e+00],
+        [1.4913e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.007188742003163107
+	structure loss: 1.0719692359094715e-05
+	Sigma: tensor([[0.7346, 0.0013],
+        [0.0013, 0.5319]], grad_fn=<MmBackward0>)
+Check M:  tensor([[-0.0021,  0.0000],
+        [ 0.0160, -0.0103]])
+Check eigenvalues:  0.5319394236046209
+
+mu 0.05
+
+Inner iteration 2000
+	h(W(model)): 0.006316896652416354
+	score(model): 0.06526412506868041
+	 mle: 1.177311077285668
+	 mse: 0.6684306738725377
+	W1: tensor([[1.0000e-04, 8.0315e+00],
+        [1.3995e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.006316876313723352
+	structure loss: 2.03386930023447e-08
+	Sigma: tensor([[ 7.5549e-01, -5.6152e-05],
+        [-5.6152e-05,  5.8185e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[2.1760e-05, 0.0000e+00],
+        [6.5878e-05, 5.4046e-05]])
+Check eigenvalues:  0.581853116007135
+
+mu 0.05
+
+Inner iteration 3000
+	h(W(model)): 0.006188435424074561
+	score(model): 0.06520682336065595
+	 mle: 1.1787370751759703
+	 mse: 0.6690524881862145
+	W1: tensor([[1.0000e-04, 8.0323e+00],
+        [1.3850e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.006188413610156651
+	structure loss: 2.1813917909854763e-08
+	Sigma: tensor([[ 7.5737e-01, -5.8147e-05],
+        [-5.8147e-05,  5.8139e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[3.4146e-05, 0.0000e+00],
+        [3.2709e-07, 6.9382e-05]])
+Check eigenvalues:  0.5813920218207936
+
+mu 0.05
+
+Inner iteration 4000
+	h(W(model)): 0.006167182946239217
+	score(model): 0.06519439667991128
+	 mle: 1.1792206184768654
+	 mse: 0.6692745825283598
+	W1: tensor([[1.0000e-04, 8.0332e+00],
+        [1.3825e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.006167157901662446
+	structure loss: 2.504457677181271e-08
+	Sigma: tensor([[ 7.5788e-01, -6.2297e-05],
+        [-6.2297e-05,  5.8114e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 4.0190e-05,  0.0000e+00],
+        [-2.6713e-05,  6.9334e-05]])
+Check eigenvalues:  0.5811367701027872
+
+mu 0.05
+
+Inner iteration 4999
+	h(W(model)): 0.006351489278012823
+	score(model): 0.06539803260130506
+	 mle: 1.1790394303261091
+	 mse: 0.6692146828927735
+	W1: tensor([[1.0000e-04, 8.0296e+00],
+        [1.4036e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.006350809317446693
+	structure loss: 6.799605661300667e-07
+	Sigma: tensor([[ 7.5797e-01, -3.2475e-04],
+        [-3.2475e-04,  5.8104e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 6.8650e-06,  0.0000e+00],
+        [-3.4403e-03,  6.0750e-05]])
+Check eigenvalues:  0.5810420038036627
+
+Dagma iter t=3 -- mu: 0.025 ------------------------------
+success:  False
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.025
+
+Inner iteration 0
+	h(W(model)): 0.006506364474423515
+	score(model): 0.03602312858703273
+	 mle: 40.55591947304152
+	 mse: 13.009939445214028
+	W1: tensor([[1.0000e-04, 8.0302e+00],
+        [1.4205e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.00650579631716397
+	structure loss: 5.681572595450657e-07
+	Sigma: tensor([[ 7.5798e-01, -2.9683e-04],
+        [-2.9683e-04,  5.8104e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 1.6313e-05,  0.0000e+00],
+        [-3.1866e-03,  3.1360e-05]])
+Check eigenvalues:  0.5810413592756623
+
+mu 0.025
+
+Inner iteration 1000
+	h(W(model)): 0.001527653647077678
+	score(model): 0.03472363146383843
+	 mle: 1.326224331451722
+	 mse: 0.7245295757207045
+	W1: tensor([[1.0000e-04, 7.9524e+00],
+        [6.9469e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0015259647020484657
+	structure loss: 1.6889450292123433e-06
+	Sigma: tensor([[8.4567e-01, 5.1679e-04],
+        [5.1679e-04, 6.5794e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[-0.0008,  0.0000],
+        [ 0.0021,  0.0051]])
+Check eigenvalues:  0.6579349593188376
+
+mu 0.025
+
+Inner iteration 2000
+	h(W(model)): 0.0014795519670957476
+	score(model): 0.0341293607813499
+	 mle: 1.3043614525780596
+	 mse: 0.7195748825717877
+	W1: tensor([[1.0000e-04, 8.0406e+00],
+        [6.7653e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.001479545094789092
+	structure loss: 6.872306655605204e-09
+	Sigma: tensor([[ 8.5780e-01, -3.2603e-05],
+        [-3.2603e-05,  5.8132e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 1.5467e-05,  0.0000e+00],
+        [-1.6614e-04, -2.5778e-05]])
+Check eigenvalues:  0.5813187426561239
+
+mu 0.025
+
+Inner iteration 3000
+	h(W(model)): 0.0014359266211222362
+	score(model): 0.03408999408035533
+	 mle: 1.3045315365945882
+	 mse: 0.7198219206839949
+	W1: tensor([[1.0000e-04, 8.0407e+00],
+        [6.6648e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0014359244292538875
+	structure loss: 2.1918683487144597e-09
+	Sigma: tensor([[ 8.5892e-01, -1.8413e-05],
+        [-1.8413e-05,  5.8129e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[9.4049e-06, 0.0000e+00],
+        [1.6758e-06, 3.4471e-05]])
+Check eigenvalues:  0.5812878911570829
+
+mu 0.025
+
+Inner iteration 4000
+	h(W(model)): 0.00141976029026079
+	score(model): 0.03408077265194756
+	 mle: 1.3048088895888468
+	 mse: 0.7199877350798897
+	W1: tensor([[1.0000e-04, 8.0410e+00],
+        [6.6269e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0014197582105661688
+	structure loss: 2.0796946211595196e-09
+	Sigma: tensor([[ 8.5945e-01, -1.7935e-05],
+        [-1.7935e-05,  5.8109e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[9.4484e-06, 0.0000e+00],
+        [1.2208e-08, 3.4252e-05]])
+Check eigenvalues:  0.5810901109886224
+
+mu 0.025
+
+Inner iteration 4999
+	h(W(model)): 0.0014269158973724816
+	score(model): 0.03408716375466674
+	 mle: 1.304788306838493
+	 mse: 0.720009945102641
+	W1: tensor([[1.0000e-04, 8.0415e+00],
+        [6.6431e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.001426913184833456
+	structure loss: 2.712539025643765e-09
+	Sigma: tensor([[ 8.5959e-01, -2.0481e-05],
+        [-2.0481e-05,  5.8095e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 8.3023e-06,  0.0000e+00],
+        [-1.0834e-05,  3.3200e-05]])
+Check eigenvalues:  0.5809492361899332
+
+Dagma iter t=4 -- mu: 0.0125 ------------------------------
+success:  False
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.0125
+
+Inner iteration 0
+	h(W(model)): 0.0014302953748134611
+	score(model): 0.01776054766503737
+	 mle: 40.79226571428821
+	 mse: 13.239867585982129
+	W1: tensor([[1.0000e-04, 8.0416e+00],
+        [6.6509e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0014302928349541055
+	structure loss: 2.539859355601623e-09
+	Sigma: tensor([[ 8.5959e-01, -1.9818e-05],
+        [-1.9818e-05,  5.8095e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 3.9088e-06,  0.0000e+00],
+        [-1.1735e-04,  1.6650e-05]])
+Check eigenvalues:  0.5809495190295394
+
+mu 0.0125
+
+Inner iteration 1000
+	h(W(model)): 0.0014943767746949336
+	score(model): 0.02446132666074271
+	 mle: 1.8325499250742825
+	 mse: 0.8192340655960567
+	W1: tensor([[1.0000e-04, 7.7730e+00],
+        [7.0332e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.001494375112434554
+	structure loss: 1.6622603796895286e-09
+	Sigma: tensor([[ 8.1672e-01, -1.6587e-05],
+        [-1.6587e-05,  1.5943e+00]], grad_fn=<MmBackward0>)
+Check M:  tensor([[-0.0030,  0.0000],
+        [-0.0033,  0.0137]])
+Check eigenvalues:  0.8167196620045737
+
+mu 0.0125
+
+Inner iteration 2000
+	h(W(model)): 0.00035709157217788426
+	score(model): 0.01749900866839095
+	 mle: 1.369755988635221
+	 mse: 0.7474034996148371
+	W1: tensor([[1.0000e-04, 8.0476e+00],
+        [3.3207e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.00035708982402971046
+	structure loss: 1.748148173799386e-09
+	Sigma: tensor([[ 9.0942e-01, -1.6429e-05],
+        [-1.6429e-05,  5.8839e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 9.1046e-06,  0.0000e+00],
+        [-4.1447e-05,  1.1515e-04]])
+Check eigenvalues:  0.5883910285099313
+
+mu 0.0125
+
+Inner iteration 3000
+	h(W(model)): 0.0004466823946053767
+	score(model): 0.017527767438083798
+	 mle: 1.3649323582249617
+	 mse: 0.746118820045622
+	W1: tensor([[1.0000e-04, 8.0465e+00],
+        [3.7145e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0004466812334862347
+	structure loss: 1.1611191420238948e-09
+	Sigma: tensor([[ 9.0994e-01, -1.3392e-05],
+        [-1.3392e-05,  5.8295e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 5.5787e-06,  0.0000e+00],
+        [-8.1977e-06,  2.2305e-05]])
+Check eigenvalues:  0.5829522358478458
+
+mu 0.0125
+
+Inner iteration 4000
+	h(W(model)): 0.000661431411517566
+	score(model): 0.017723735805006455
+	 mle: 1.3633118586343405
+	 mse: 0.7456623211984237
+	W1: tensor([[1.0000e-04, 8.0382e+00],
+        [4.5247e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.000661431055377637
+	structure loss: 3.561399289624817e-10
+	Sigma: tensor([[9.1000e-01, 7.4242e-06],
+        [7.4242e-06, 5.8181e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[1.8817e-06, 0.0000e+00],
+        [2.7928e-05, 1.6075e-05]])
+Check eigenvalues:  0.5818065779958873
+
+mu 0.0125
+
+Inner iteration 4999
+	h(W(model)): 0.000745633835310815
+	score(model): 0.0178023130074116
+	 mle: 1.362263834278537
+	 mse: 0.7452668598552239
+	W1: tensor([[1.0000e-04, 8.0287e+00],
+        [4.8098e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0007456307114632743
+	structure loss: 3.1238475406685645e-09
+	Sigma: tensor([[9.1035e-01, 2.2014e-05],
+        [2.2014e-05, 5.8147e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[1.1392e-05, 0.0000e+00],
+        [2.4452e-05, 1.2874e-05]])
+Check eigenvalues:  0.581467808895283
+
+Dagma iter t=5 -- mu: 0.00625 ------------------------------
+success:  False
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.00625
+
+Inner iteration 0
+	h(W(model)): 0.0008081344356712339
+	score(model): 0.009332464189551616
+	 mle: 44.296247899583214
+	 mse: 14.206506112276676
+	W1: tensor([[1.0000e-04, 8.0296e+00],
+        [5.0067e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0008081319951047661
+	structure loss: 2.4405664677791886e-09
+	Sigma: tensor([[9.1033e-01, 1.9456e-05],
+        [1.9456e-05, 5.8147e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[1.2898e-05, 0.0000e+00],
+        [1.2740e-04, 6.9473e-06]])
+Check eigenvalues:  0.5814697945031375
+
+mu 0.00625
+
+Inner iteration 1000
+	h(W(model)): 0.0011067389005044637
+	score(model): 0.019396728499158404
+	 mle: 2.920034675038516
+	 mse: 1.7360517104537356
+	W1: tensor([[1.0000e-04, 7.1498e+00],
+        [6.5771e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0011056794811690196
+	structure loss: 1.0594193354440586e-06
+	Sigma: tensor([[9.2953e-01, 4.5524e-04],
+        [4.5524e-04, 3.7529e+00]], grad_fn=<MmBackward0>)
+Check M:  tensor([[0.0001, 0.0000],
+        [0.0001, 0.0040]])
+Check eigenvalues:  0.929532728240617
+
+mu 0.00625
+
+Inner iteration 2000
+	h(W(model)): 9.485697293376705e-05
+	score(model): 0.009490496119807975
+	 mle: 1.501475912462853
+	 mse: 0.7922722805136907
+	W1: tensor([[1.0000e-04, 8.1605e+00],
+        [1.6868e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 9.476429106047846e-05
+	structure loss: 9.268187328859828e-08
+	Sigma: tensor([[9.3485e-01, 1.1797e-04],
+        [1.1797e-04, 6.3962e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 5.8395e-07,  0.0000e+00],
+        [-4.4101e-06, -1.9885e-04]])
+Check eigenvalues:  0.6396226412244687
+
+mu 0.00625
+
+Inner iteration 3000
+	h(W(model)): 9.335079590854463e-05
+	score(model): 0.008951695819108502
+	 mle: 1.4156697787499475
+	 mse: 0.7655395964020725
+	W1: tensor([[1.0000e-04, 8.0762e+00],
+        [1.6915e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 9.333428291480317e-05
+	structure loss: 1.6512993741461075e-08
+	Sigma: tensor([[9.3464e-01, 5.0316e-05],
+        [5.0316e-05, 5.9798e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 1.0647e-06,  0.0000e+00],
+        [-1.0794e-08,  3.0441e-05]])
+Check eigenvalues:  0.5979818155343228
+
+mu 0.00625
+
+Inner iteration 4000
+	h(W(model)): 9.107078690759123e-05
+	score(model): 0.008869219550137131
+	 mle: 1.402864618718234
+	 mse: 0.761769606099476
+	W1: tensor([[1.0000e-04, 8.0540e+00],
+        [1.6755e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 9.106963947935753e-05
+	structure loss: 1.1474282336993227e-09
+	Sigma: tensor([[9.3478e-01, 1.3300e-05],
+        [1.3300e-05, 5.8938e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[1.0525e-06, 0.0000e+00],
+        [7.4003e-09, 1.1414e-05]])
+Check eigenvalues:  0.589375384886152
+
+mu 0.00625
+
+Inner iteration 4999
+	h(W(model)): 8.914882386617966e-05
+	score(model): 0.008835296511495776
+	 mle: 1.3977482882072083
+	 mse: 0.7603046276374837
+	W1: tensor([[1.0000e-04, 8.0494e+00],
+        [1.6587e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 8.914877717103309e-05
+	structure loss: 4.669514656939575e-11
+	Sigma: tensor([[9.3499e-01, 2.6846e-06],
+        [2.6846e-06, 5.8615e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[1.0498e-06, 0.0000e+00],
+        [2.2467e-09, 9.4227e-06]])
+Check eigenvalues:  0.5861463418601769
+
+Dagma iter t=6 -- mu: 0.003125 ------------------------------
+success:  False
+
+Minimize s=1.0 -- lr=0.03
+
+mu 0.003125
+
+Inner iteration 0
+	h(W(model)): 8.914722777940804e-05
+	score(model): 0.004462209249260159
+	 mle: 23.31960658539609
+	 mse: 7.08576783038043
+	W1: tensor([[1.0000e-04, 8.0494e+00],
+        [1.6587e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 8.914718135422106e-05
+	structure loss: 4.6425186977605386e-11
+	Sigma: tensor([[9.3499e-01, 2.6768e-06],
+        [2.6768e-06, 5.8614e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[5.2495e-07, 0.0000e+00],
+        [1.6771e-05, 4.7108e-06]])
+Check eigenvalues:  0.5861439604114318
+
+mu 0.003125
+
+Inner iteration 1000
+	h(W(model)): 0.001895263796894523
+	score(model): 0.033639012631621765
+	 mle: 8.092320547780231
+	 mse: 21.599193786221452
+	W1: tensor([[1.0000e-04, 6.3047e-01],
+        [9.3183e-02, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0017257432235386894
+	structure loss: 0.00016952057335583356
+	Sigma: tensor([[0.1645, 0.0646],
+        [0.0646, 6.0626]], grad_fn=<MmBackward0>)
+Check M:  tensor([[1.8640e-05, 0.0000e+00],
+        [3.3158e-04, 3.6015e-04]])
+Check eigenvalues:  0.1637967883373902
+
+mu 0.003125
+
+Inner iteration 2000
+	h(W(model)): 5.985503301657414e-05
+	score(model): 0.004701974537146502
+	 mle: 1.483908995710311
+	 mse: 0.7866375064617285
+	W1: tensor([[1.0000e-04, 8.1690e+00],
+        [1.3390e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 5.984548248205712e-05
+	structure loss: 9.550534517021507e-09
+	Sigma: tensor([[ 9.3444e-01, -3.7831e-05],
+        [-3.7831e-05,  5.5461e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[-9.2817e-05,  0.0000e+00],
+        [-3.1585e-04, -7.8915e-04]])
+Check eigenvalues:  0.5546134888154435
+
+mu 0.003125
+
+Inner iteration 3000
+	h(W(model)): 0.0002556847418129471
+	score(model): 0.004724093112132246
+	 mle: 1.4283029542412626
+	 mse: 0.7717111620959255
+	W1: tensor([[1.0000e-04, 8.0468e+00],
+        [2.8101e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.00025568470819825606
+	structure loss: 3.3614691054544704e-11
+	Sigma: tensor([[ 9.4774e-01, -2.2785e-06],
+        [-2.2785e-06,  5.9594e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[6.1606e-07, 0.0000e+00],
+        [3.5880e-06, 2.1441e-06]])
+Check eigenvalues:  0.5959375379528453
+
+mu 0.003125
+
+Inner iteration 4000
+	h(W(model)): 0.0002316309670629434
+	score(model): 0.004670214883051814
+	 mle: 1.4191670784559256
+	 mse: 0.7689948562574542
+	W1: tensor([[1.0000e-04, 8.0134e+00],
+        [2.6858e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.00023162948592636567
+	structure loss: 1.4811365777248325e-09
+	Sigma: tensor([[9.4814e-01, 1.5187e-05],
+        [1.5187e-05, 5.9008e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 5.6889e-06,  0.0000e+00],
+        [-1.2290e-06, -2.3241e-06]])
+Check eigenvalues:  0.5900829282415019
+
+mu 0.003125
+
+Inner iteration 5000
+	h(W(model)): 0.00042425011835948485
+	score(model): 0.004838055315843201
+	 mle: 1.410360750689065
+	 mse: 0.7664332600514301
+	W1: tensor([[1.0000e-04, 8.0660e+00],
+        [3.6113e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0004242491758494893
+	structure loss: 9.425099955595422e-10
+	Sigma: tensor([[ 9.4726e-01, -1.2036e-05],
+        [-1.2036e-05,  5.8615e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[-5.8246e-06,  0.0000e+00],
+        [ 1.1973e-05,  1.1180e-05]])
+Check eigenvalues:  0.5861482971347225
+
+mu 0.003125
+
+Inner iteration 6000
+	h(W(model)): 0.0002856355353558001
+	score(model): 0.004687331676263543
+	 mle: 1.406262465543058
+	 mse: 0.7652199283616365
+	W1: tensor([[1.0000e-04, 8.0584e+00],
+        [2.9659e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.00028563548264815
+	structure loss: 5.2707650147632706e-11
+	Sigma: tensor([[ 9.4823e-01, -2.8490e-06],
+        [-2.8490e-06,  5.8235e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 1.1803e-06,  0.0000e+00],
+        [ 1.0014e-04, -5.8746e-06]])
+Check eigenvalues:  0.582348605082693
+
+mu 0.003125
+
+Inner iteration 7000
+	h(W(model)): 0.0007040877982090513
+	score(model): 0.0051120297800656325
+	 mle: 1.4096677121138466
+	 mse: 0.7663836337267023
+	W1: tensor([[1.0000e-04, 7.9836e+00],
+        [4.7001e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.000704037876876562
+	structure loss: 4.99213324892632e-08
+	Sigma: tensor([[9.4806e-01, 8.8500e-05],
+        [8.8500e-05, 5.8307e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[ 4.6718e-06,  0.0000e+00],
+        [ 6.9806e-04, -1.5186e-05]])
+Check eigenvalues:  0.5830697494321723
+
+mu 0.003125
+
+Inner iteration 7999
+	h(W(model)): 0.0006071031125032613
+	score(model): 0.005004638363992088
+	 mle: 1.4071864155367342
+	 mse: 0.7653912097564707
+	W1: tensor([[1.0000e-04, 8.0466e+00],
+        [4.3301e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+	cycle loss: 0.0006070261657074028
+	structure loss: 7.694679585851499e-08
+	Sigma: tensor([[9.4793e-01, 1.0901e-04],
+        [1.0901e-04, 5.8398e-01]], grad_fn=<MmBackward0>)
+Check M:  tensor([[2.8983e-07, 0.0000e+00],
+        [1.4008e-03, 1.8950e-05]])
+Check eigenvalues:  0.5839774070533408
+final_W1:  tensor([[1.0000e-04, 8.0783e+00],
+        [6.8136e-03, 1.0000e-04]], grad_fn=<SqrtBackward0>)
+final_W2:  tensor([[ 9.4792e-01, -1.5601e-04],
+        [-1.5601e-04,  5.8431e-01]], grad_fn=<MmBackward0>)
+W1:  [[1.00000000e-04 8.07827728e+00]
+ [6.81360890e-03 1.00000000e-04]]
+W2:  [[ 9.47918802e-01 -1.56007516e-04]
+ [-1.56007516e-04  5.84312079e-01]]
+logdet:  tensor(-0.5908)
+The programm is closed
