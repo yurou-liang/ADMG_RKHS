@@ -330,7 +330,7 @@ class RKHS_discovery:
             mu: float, 
             s: float,
             lr_decay: float = False, 
-            tol: float = 1e-6, 
+            tol: float = 1e-12, 
             pbar: typing.Optional[tqdm] = None,
             t = None
     ) -> bool:
@@ -457,7 +457,7 @@ class RKHS_discovery:
             diff = torch.abs(mle_loss_prior - mle_loss_posterior)
             # diff = torch.abs(mse_loss_prior - mse_loss_posterior)
             eigenvalues = torch.linalg.eigh(Sigma_prior)[0]
-            if diff < 1e-6 and penalty < 1e-9:
+            if diff < 1e-12 and penalty < 1e-9:
                 break
             if lr_decay and (i+1) % 1000 == 0: #every 1000 iters reduce lr
                 scheduler.step()
