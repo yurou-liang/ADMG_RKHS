@@ -139,27 +139,27 @@ class Sigma_discovery:
     def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64):
         self.model = model
         self.x = x
-    def fit(self, lr: torch.float64 = .005, lambda2: torch.float64 = .005, max_iter=2500):
+    def fit(self, lr: torch.float64 = .05, lambda2: torch.float64 = .005, max_iter=2500):
         # self.vprint(f'\nMinimize s={s} -- lr={lr}')
-        # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
-        optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
-        optimizer_Sigma = optim.Adam([self.model.M], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
+        optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
+        # optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
+        # optimizer_Sigma = optim.Adam([self.model.M], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
 
         obj_prev = 1e16####
         for i in range(max_iter):
-            optimizer_alpha_beta.zero_grad()
+            optimizer.zero_grad()
             Sigma_prior, x_est_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
             obj = mle_loss_prior
             obj.backward()
-            optimizer_alpha_beta.step()
+            optimizer.step()
 
-            optimizer_Sigma.zero_grad()
-            Sigma_prior, x_est_prior = self.model.forward()
-            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            obj = mle_loss_prior
-            obj.backward()
-            optimizer_Sigma.step()
+            # optimizer_Sigma.zero_grad()
+            # Sigma_prior, x_est_prior = self.model.forward()
+            # mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            # obj = mle_loss_prior
+            # obj.backward()
+            # optimizer_Sigma.step()
             
             Sigma_posterior, x_est_posterior = self.model.forward()
             mle_loss_posterior = self.model.mle_loss(self.x, x_est_posterior, Sigma_posterior)
@@ -179,42 +179,25 @@ if __name__ == "__main__":
     # Random data for X and X_hat
     True_Sigma = np.array([[1, 0.6],    # Variance of X is 1, covariance between X and Y is 0.8
                   [0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
-    alpha = torch.randn(dim, n_samples, dtype=torch.float64)
-    beta = torch.randn(dim, dim, n_samples, dtype=torch.float64)
     epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
     epsilon = torch.tensor(epsilon, dtype=torch.float64)
     X = torch.randn(n_samples, dim)
-    diff = X.unsqueeze(1) - X.unsqueeze(0)
-    omega = torch.ones(dim, dim)
-    omega.fill_diagonal_(0)
-    sq_dist = torch.einsum('jk, ilk -> jil', omega, diff**2)
-    K = torch.exp(-sq_dist / (1 ** 2)) 
-    grad_K1 = -2 / (1** 2) * torch.einsum('jil, ila -> jila', K, diff)
-    identity_mask = torch.eye(dim, dtype=torch.bool)
-    broadcastable_mask = identity_mask.view(dim, 1, 1, dim)
-    expanded_mask = broadcastable_mask.expand(-1, n_samples, n_samples, -1)
-    grad_K1[expanded_mask] = 0.0
-    grad_K2 = -grad_K1
-    output1 = torch.einsum('jl, jil -> ij', alpha, K) # [n, d]
-    output2 = torch.einsum('jal, jila -> ijl', beta, grad_K2) # [n, d, n]
-    output2 = torch.sum(output2, dim = 2) # [n, d]
-    X_hat = output1 + output2
+    X_inverse = X[:, [1, 0]]
+    X_hat = 5*torch.sin(X_inverse)
     X_true = X_hat + epsilon
     eq_model2 = Sigma_RKHSDagma(X, gamma = 1)
     model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
     x_est, Sigma = model2.fit()
-    distances = torch.sqrt(torch.sum((x_est - X_hat) ** 2))/n_samples
+    y_hat = x_est[:, 1].detach().numpy()
     empirical_covariance = np.cov(epsilon, rowvar=False)
     print("Empirical Covariance Matrix:", empirical_covariance)
-    print("estimated distance: ", distances)
     print("estimated Sigma: ", Sigma)
 
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(X.detach().numpy()[:, 1], X_true.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
-    plt.scatter(X.detach().numpy()[:, 1], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
+    plt.scatter(X_inverse.detach().numpy()[:, 1], X_true.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(X_inverse.detach().numpy()[:, 1], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
     plt.show()
     print("The programm is closed")
-    
