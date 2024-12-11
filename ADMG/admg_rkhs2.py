@@ -40,7 +40,7 @@ def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
     # Sigma = torch.eye(d)
     # Sigma_init = cov + cov.T + torch.diag(Sigma.diag())
     # Sigma_init = torch.diag(Sigma.diag())
-    Sigma_init = cov + cov.T + torch.eye(d)
+    Sigma_init = cov + cov.T + torch.eye(d)#torch.tensor([[0.1, 0], [0,1]])
     # Sigma_init = torch.tensor([[1, 0, 0, 0],    # Variance of X is 1, covariance between X and Y is 0.8
     #             [0, 1, 0, 0],
     #             [0, 0, 1, 0.6],
@@ -139,27 +139,27 @@ class Sigma_discovery:
     def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64):
         self.model = model
         self.x = x
-    def fit(self, lr: torch.float64 = .05, lambda2: torch.float64 = .005, max_iter=2500):
+    def fit(self, lr: torch.float64 = .03, lambda2: torch.float64 = .005, max_iter=2500):
         # self.vprint(f'\nMinimize s={s} -- lr={lr}')
-        optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
-        # optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
-        # optimizer_Sigma = optim.Adam([self.model.M], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
+        # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
+        optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
+        optimizer_Sigma = optim.Adam([self.model.M], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
 
         obj_prev = 1e16####
         for i in range(max_iter):
-            optimizer.zero_grad()
+            optimizer_alpha_beta.zero_grad()
             Sigma_prior, x_est_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
             obj = mle_loss_prior
             obj.backward()
-            optimizer.step()
+            optimizer_alpha_beta.step()
 
-            # optimizer_Sigma.zero_grad()
-            # Sigma_prior, x_est_prior = self.model.forward()
-            # mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            # obj = mle_loss_prior
-            # obj.backward()
-            # optimizer_Sigma.step()
+            optimizer_Sigma.zero_grad()
+            Sigma_prior, x_est_prior = self.model.forward()
+            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            obj = mle_loss_prior
+            obj.backward()
+            optimizer_Sigma.step()
             
             Sigma_posterior, x_est_posterior = self.model.forward()
             mle_loss_posterior = self.model.mle_loss(self.x, x_est_posterior, Sigma_posterior)
@@ -171,21 +171,25 @@ class Sigma_discovery:
                 print(f"Step {i}: Sigma = {Sigma_posterior}")
         return x_est_posterior, Sigma_posterior
     
+    
 if __name__ == "__main__":
     # Sample data generation: let's assume X and X_hat are from some known distributions for the sake of example
-    n_samples = 200  # Number of samples
+    n_samples = 300  # Number of samples
     dim = 2  # Dimension of the normal vectors
 
     # Random data for X and X_hat
-    True_Sigma = np.array([[1, 0.6],    # Variance of X is 1, covariance between X and Y is 0.8
-                  [0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    True_Sigma = np.array([[1, 0.3],    # Variance of X is 1, covariance between X and Y is 0.8
+                  [0.3, 1.5]])   # Variance of Y is 1, covariance between Y and X is 0.8
     epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
     epsilon = torch.tensor(epsilon, dtype=torch.float64)
-    x1 = epsilon[:, 0]
-    x2 = 5*torch.sin(x1)+epsilon[:, 1]
-    X = torch.cat((x1, x2), dim=1)
+    x1 = torch.randn(n_samples)
+    # x1 = torch.zeros(n_samples)
+    x2 = 5*torch.sin(x1)
+    # Step 4: Combine these results into a new tensor of shape [n, 2]
+    X = torch.stack((x1, x2), dim=1)
+    X_true = X + epsilon
     eq_model2 = Sigma_RKHSDagma(X, gamma = 1)
-    model2 = Sigma_discovery(x=X, model=eq_model2, admg_class = "ancestral", verbose=True)
+    model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
     x_est, Sigma = model2.fit()
     y_hat = x_est[:, 1].detach().numpy()
     empirical_covariance = np.cov(epsilon, rowvar=False)
@@ -193,7 +197,7 @@ if __name__ == "__main__":
     print("estimated Sigma: ", Sigma)
 
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(X.detach().numpy()[:, 0], X.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(X.detach().numpy()[:, 0], X_true.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
     plt.scatter(X.detach().numpy()[:, 0], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
     plt.xlabel('x')
     plt.ylabel('y')
