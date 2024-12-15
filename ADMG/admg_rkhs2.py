@@ -133,13 +133,30 @@ class Sigma_RKHSDagma(nn.Module):
         sign, logdet = torch.linalg.slogdet(Sigma)
         mle += logdet
         return mle
+
+    def complexity_reg(self, lambda1, tau):
+        """
+        parameter:
+        tau: penalty for sparsity termn and function complexity term together
+        lambda1: addtional penalty for function complexity term 
+
+        return: function complexity penalty
+        """
+        temp1 = torch.einsum('ji, jil -> jl', self.alpha, self.K) #[d, n]
+        temp1 = (self.alpha*temp1).sum() 
+        temp2 = torch.einsum('jal, jila -> ji', self.beta, self.grad_K2) #[d, n]
+        temp2 = (self.alpha * temp2).sum()
+        temp3 = torch.einsum('jbl, jilab -> jai', self.beta, self.mixed_grad) #[d, d, n]
+        temp3 = (self.beta * temp3).sum()
+        regularized = lambda1*tau*(temp1 + temp2 + temp3)
+        return regularized
     
 class Sigma_discovery:
 
-    def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64):
+    def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64, lambda1=1e-3, tau=1e-4):
         self.model = model
         self.x = x
-    def fit(self, lr: torch.float64 = .03, lambda2: torch.float64 = .005, max_iter=2500):
+    def fit(self, lr: torch.float64 = .03, lambda2: torch.float64 = .005, max_iter=2500, lambda1=1e-3, tau=1e-4):
         # self.vprint(f'\nMinimize s={s} -- lr={lr}')
         # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
         optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
@@ -150,13 +167,18 @@ class Sigma_discovery:
             optimizer_alpha_beta.zero_grad()
             Sigma_prior, x_est_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            obj = mle_loss_prior
+            residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
+            complexity_reg = self.model.complexity_reg(lambda1, tau)
+            obj = mle_loss_prior + complexity_reg #+ residual_norm
             obj.backward()
             optimizer_alpha_beta.step()
 
             optimizer_Sigma.zero_grad()
             Sigma_prior, x_est_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
+            complexity_reg = self.model.complexity_reg(lambda1, tau)
+            obj = mle_loss_prior + complexity_reg #+ residual_norm
             obj = mle_loss_prior
             obj.backward()
             optimizer_Sigma.step()
@@ -173,6 +195,8 @@ class Sigma_discovery:
     
     
 if __name__ == "__main__":
+
+    #best worked version
     # Sample data generation: let's assume X and X_hat are from some known distributions for the sake of example
     n_samples = 300  # Number of samples
     dim = 2  # Dimension of the normal vectors
@@ -188,6 +212,43 @@ if __name__ == "__main__":
     # Step 4: Combine these results into a new tensor of shape [n, 2]
     X = torch.stack((x1, x2), dim=1)
     X_true = X + epsilon
+    eq_model2 = Sigma_RKHSDagma(X, gamma = 1)
+    model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
+    x_est, Sigma = model2.fit()
+    y_hat = x_est[:, 1].detach().numpy()
+    empirical_covariance = np.cov(epsilon, rowvar=False)
+    print("Empirical Covariance Matrix:", empirical_covariance)
+    print("estimated Sigma: ", Sigma)
+
+    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    plt.scatter(X.detach().numpy()[:, 0], X_true.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(X.detach().numpy()[:, 0], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.show()
+    print("The programm is closed")
+
+    #Enhanced version 
+
+    # Sample data generation: let's assume X and X_hat are from some known distributions for the sake of example
+    n_samples = 300  # Number of samples
+    dim = 2  # Dimension of the normal vectors
+
+    # Random data for X and X_hat
+    True_Sigma = np.array([[1, 0.3],    
+                  [0.3, 1.5]])   
+    epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
+    epsilon = torch.tensor(epsilon, dtype=torch.float64)
+    # x1 = -6 + 12 * torch.rand(n_samples) 
+    x1 = torch.randn(n_samples)
+    # x1 = torch.tensor(np.random.uniform(low=-3, high=3, size=300))
+    x2 = 20*torch.sin(x1) + epsilon[:, 1]
+    # Step 4: Combine these results into a new tensor of shape [n, 2]
+    X = torch.stack((x1, x2), dim=1)
+    x1_true = x1 + epsilon[:, 0]
+    x2_true = 20*torch.sin(x1) + epsilon[:, 1]
+    X_true = torch.stack((x1_true, x2_true), dim=1)
     eq_model2 = Sigma_RKHSDagma(X, gamma = 1)
     model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
     x_est, Sigma = model2.fit()
