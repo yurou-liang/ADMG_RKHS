@@ -36,17 +36,17 @@ def cycle_loss(W: torch.tensor, s=1):
     :return: float corresponding to penalty on directed cycles.
     Use trick when computing the trace of a product
     """
-    d = W.size(0)
-    s = torch.tensor(s)
-    A = s*torch.eye(d) - W*W
-    sign, logabsdet = torch.linalg.slogdet(A)
-    h = -logabsdet + d * torch.log(s)
-    return h
+    # d = W.size(0)
+    # s = torch.tensor(s)
+    # A = s*torch.eye(d) - W*W
+    # sign, logabsdet = torch.linalg.slogdet(A)
+    # h = -logabsdet + d * torch.log(s)
+    # return h
 
-    # d = len(W)
-    # M = torch.eye(d) + W * W/d
-    # E = torch.matrix_power(M, d - 1)
-    # return torch.sum(E.T * M) - d
+    d = len(W)
+    M = torch.eye(d) + W * W/d
+    E = torch.matrix_power(M, d - 1)
+    return torch.sum(E.T * M) - d
     
 
 
@@ -258,17 +258,17 @@ class ADMG_RKHSDagma(nn.Module):
         W2 = Sigma - Wii
         return W1, W2
     
-    def mle_loss(self, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
+    def mle_loss(self, x, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
         # mle = torch.trace((self.x - x_est)@torch.linalg.inv(self.Sigma)@((self.x - x_est).T)) # Check if Sigma invertible !!!!, aslo divide by n
         # Sigma = self.I
-        tmp = torch.linalg.solve(Sigma, (self.x - x_est).T)
-        mle = torch.trace((self.x - x_est)@tmp)/self.n
+        tmp = torch.linalg.solve(Sigma, (x - x_est).T)
+        mle = torch.trace((x - x_est)@tmp)/self.n
         sign, logdet = torch.linalg.slogdet(Sigma)
         mle += logdet
         return mle
     
-    def mse(self, x_est: torch.tensor): # [1, 1]
-      squared_loss = 0.5 / self.n * torch.sum((x_est - self.x) ** 2)
+    def mse(self, x, x_est: torch.tensor): # [1, 1]
+      squared_loss = 0.5 / self.n * torch.sum((x_est - x) ** 2)
       return squared_loss
     
     def complexity_reg(self, lambda1, tau):
@@ -304,7 +304,7 @@ class RKHS_discovery:
     Class that implements the DAGMA algorithm for structure learning in ADMGs.
     """
 
-    def __init__(self, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64):
+    def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64):
         """
         Parameters
         ----------
@@ -320,6 +320,7 @@ class RKHS_discovery:
         self.model = model
         self.admg_class = admg_class
         self.dtype = dtype
+        self.x = x
 
     def minimize(self, 
             max_iter: float, 
@@ -387,35 +388,83 @@ class RKHS_discovery:
         #     )
         self.vprint(f'\nMinimize s={s} -- lr={lr}')
 
-        optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
+        # # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
+        optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
+        optimizer_Sigma = optim.Adam([self.model.M], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
+
         if lr_decay is True:
-            scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
+            scheduler_alpha_beta = optim.lr_scheduler.ExponentialLR(optimizer_alpha_beta, gamma=0.8)
+            scheduler_Sigma = optim.lr_scheduler.ExponentialLR(optimizer_Sigma, gamma=0.8)
         obj_prev = 1e16
         for i in range(max_iter):
-            optimizer.zero_grad()
+            optimizer_alpha_beta.zero_grad()
             W1, W2 = self.model.fc1_to_adj()
-            M = self.model.M
-            # print("M require_grad: ", M.requires_grad_())
             h_val = cycle_loss(W1, s=1)
             if h_val.item() < 0:
                 self.vprint(f'Found h negative {h_val.item()} at iter {i}')
                 return False
-            penalty = structure_penalty(W1, W2, self.admg_class)
             x_est_prior, Sigma_prior = self.model.forward()
             # print("Sigma_prior require_grad: ", Sigma_prior.requires_grad_())
-            mle_loss_prior = self.model.mle_loss(x_est_prior, Sigma_prior)
+            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
             # mse_loss_prior = self.model.mse(x_est_prior)
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
             score = mle_loss_prior + complexity_reg + sparsity_reg 
+            penalty = structure_penalty(W1, W2, self.admg_class)
             cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
             # score = mse_loss_prior + complexity_reg + sparsity_reg
-            obj = mu * score + penalty + mu*cov_regularizer #+ mu*torch.norm(Sigma_prior - torch.eye(Sigma_prior.size(0)) , p='fro') ** 2
+            obj = mu * score + penalty #+ mu*cov_regularizer #+ mu*torch.norm(Sigma_prior - torch.eye(Sigma_prior.size(0)) , p='fro') ** 2
             # eax2 = torch.exp((torch.log(torch.tensor(self.model.n, dtype=torch.float64)) * torch.abs(Sigma_prior)))
             # tanh = (eax2 - 1) / (eax2 + 1)
             # obj = mu * score + penalty + torch.sum(tanh) * 0.5
             # print("penalty: ", penalty)
             # print("obj: ", obj)
+            obj.backward()
+            optimizer_alpha_beta.step()
+
+            optimizer_Sigma.zero_grad()
+            W1, W2 = self.model.fc1_to_adj()
+            h_val = cycle_loss(W1, s=1)
+            if h_val.item() < 0:
+                self.vprint(f'Found h negative {h_val.item()} at iter {i}')
+                return False
+            x_est_prior, Sigma_prior = self.model.forward()
+            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            complexity_reg = self.model.complexity_reg(lambda1, tau)
+            sparsity_reg = self.model.sparsity_reg(W1, tau)
+            score = mle_loss_prior + complexity_reg + sparsity_reg 
+            penalty = structure_penalty(W1, W2, self.admg_class)
+            cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
+            obj = mu * score + penalty 
+            obj.backward()
+            optimizer_Sigma.step()
+
+        # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
+        # if lr_decay is True:
+        #     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
+        # obj_prev = 1e16
+        # for i in range(max_iter):
+        #     optimizer.zero_grad()
+        #     W1, W2 = self.model.fc1_to_adj()
+        #     M = self.model.M
+        #     # print("M require_grad: ", M.requires_grad_())
+        #     h_val = cycle_loss(W1, s=1)
+        #     if h_val.item() < 0:
+        #         self.vprint(f'Found h negative {h_val.item()} at iter {i}')
+        #         return False
+        #     penalty = structure_penalty(W1, W2, self.admg_class)
+        #     x_est_prior, Sigma_prior = self.model.forward()
+        #     # print("Sigma_prior require_grad: ", Sigma_prior.requires_grad_())
+        #     mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+        #     # mse_loss_prior = self.model.mse(x_est_prior)
+        #     complexity_reg = self.model.complexity_reg(lambda1, tau)
+        #     sparsity_reg = self.model.sparsity_reg(W1, tau)
+        #     score = mle_loss_prior + complexity_reg + sparsity_reg 
+        #     cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
+        #     # score = mse_loss_prior + complexity_reg + sparsity_reg
+        #     obj = mu * score + penalty + mu*cov_regularizer
+        #     obj.backward()
+        #     optimizer.step()
 
 
 # Log basic metrics
@@ -449,18 +498,19 @@ class RKHS_discovery:
 
 
 
-            obj.backward()
-            optimizer.step()
+
             x_est_posterior, Sigma_posterior = self.model.forward()
-            mle_loss_posterior = self.model.mle_loss(x_est_posterior, Sigma_posterior)
-            mse_loss_posterior = self.model.mse(x_est_posterior)
+            mle_loss_posterior = self.model.mle_loss(self.x, x_est_posterior, Sigma_posterior)
+            mse_loss_posterior = self.model.mse(self.x, x_est_posterior)
             diff = torch.abs(mle_loss_prior - mle_loss_posterior)
             # diff = torch.abs(mse_loss_prior - mse_loss_posterior)
             eigenvalues = torch.linalg.eigh(Sigma_prior)[0]
             if diff < 1e-12 and penalty < 1e-9:
                 break
             if lr_decay and (i+1) % 1000 == 0: #every 1000 iters reduce lr
-                scheduler.step()
+                scheduler_alpha_beta.step()
+                scheduler_Sigma.step()
+                # scheduler.step()
             if i % self.checkpoint == 0 or i == max_iter-1:
                 obj_new = obj.item()
                 self.vprint(f"\nmu {mu}")
@@ -476,7 +526,7 @@ class RKHS_discovery:
                 self.vprint(f'\tSigma: {Sigma_prior}')
                 # self.vprint(f'\talpha: {self.model.alpha}')
                 # self.vprint(f'\tbeta: {self.model.beta}')
-                self.vprint("Check M: ", self.model.M.grad)
+                # self.vprint("Check M: ", self.model.M.grad)
                 # self.vprint("Check y: ", x_est_posterior[:, 1])
                 self.vprint("Check eigenvalues: ", eigenvalues.min().item())
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
@@ -488,7 +538,6 @@ class RKHS_discovery:
 
 
     def fit(self, 
-        data: pd.DataFrame,
         lambda1: torch.float64 = .02, 
         tau: torch.float64 = .02,
         lambda2: torch.float64 = .005,
@@ -545,7 +594,7 @@ class RKHS_discovery:
             before raising an issue in github.
         """
         torch.set_default_dtype(self.dtype)
-        self.x = torch.tensor(data.values, dtype=torch.float64)
+        # self.x = torch.tensor(data.values, dtype=torch.float64)
         self.checkpoint = checkpoint
         mu = mu_init
         if type(s) == list:
@@ -622,9 +671,6 @@ if __name__ == "__main__":
     # print("Bidirected edges", G.bi_edges)
 
     # # ADMG_RKHSDagma class
-    x = torch.tensor([[1, 4], [2, 1], [5, 7], [8,9]], dtype=torch.float64)
-    x_est = torch.tensor([[1, 2], [3, 4], [5, 6], [0,0]], dtype=torch.float64)
-    eq_model = ADMG_RKHSDagma(x)
 
     # # check forward
     # output, Sigma = eq_model.forward()
@@ -673,9 +719,6 @@ if __name__ == "__main__":
 
     # optimization
     # example usage
-    np.random.seed(42)
-    size = 100
-    dim = 4
 
     # DGP A->B->C->D; B<->D
     # beta = np.array([[0, 1, 0, 0],
@@ -710,40 +753,47 @@ if __name__ == "__main__":
     # print("W1: ", W1)
     # print("W2: ", W2)
     print("____________________________________________________________________________________________________________________")
-    np.random.seed(42)
-    # Step 1: Define the covariance matrix
-    True_Sigma = np.array([[1, 0.6],    # Variance of X is 1, covariance between X and Y is 0.8
-                    [0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    
+    #  # Sample data generation: let's assume X and X_hat are from some known distributions for the sake of example
+    n_samples = 300  # Number of samples
+    dim = 2  # Dimension of the normal vectors
 
-    epsilon = np.random.multivariate_normal([0] * 2, True_Sigma, size=300)
-
-    # Optionally, check the empirical covariance matrix
+    # Random data for X and X_hat
+    True_Sigma = np.array([[1, 0.3],    # Variance of X is 1, covariance between X and Y is 0.8
+                  [0.3, 1.5]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
+    epsilon = torch.tensor(epsilon, dtype=torch.float64)
+    # x1 = torch.tensor(np.random.uniform(low=-3, high=3, size=n_samples))
+    # x1 = torch.zeros(n_samples)
+    x1 = epsilon[:, 0]
+    x2 = 10*torch.sin(x1)
+    # Step 4: Combine these results into a new tensor of shape [n, 2]
+    x1_true = x1 #+ epsilon[:, 0]
+    x2_true = x2 + epsilon[:, 1]
+    X = torch.stack((x1, x2), dim=1)
+    X_true = torch.stack((x1_true, x2_true), dim=1)
+    eq_model2 = ADMG_RKHSDagma(X_true, gamma = 1)
+    model2 = RKHS_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
+    W1, Sigma, x_est = model2.fit()
+    y_hat = x_est[:, 1].detach().numpy()
     empirical_covariance = np.cov(epsilon, rowvar=False)
-    print("Empirical Covariance Matrix:")
-    print(empirical_covariance)
+    print("Empirical Covariance Matrix:", empirical_covariance)
+    print("estimated Sigma: ", Sigma)
 
-    np.random.seed(0)
-    epsilon1 = epsilon[:, 0]
-    epsilon2 = epsilon[:, 1]
-    # x = np.random.uniform(low=-3, high=3, size=200)
-    x = epsilon1
-    y = np.array([np.sin(x)*10 + epsilon2 for x, epsilon2 in zip(x, epsilon2)])
-    X = np.column_stack((x, y))
-    data = pd.DataFrame(X, columns=['x', 'y'])
-    covariance = data.cov()
-    print("covariance: ", covariance)
-
-    eq_model2 = ADMG_RKHSDagma(data, gamma = 1)
-    model2 = RKHS_discovery(eq_model2, admg_class = "ancestral", verbose=True)
-    W1, W2, output = model2.fit(data, lambda1=1e-3, tau=1e-4, T = 6, mu_init = 0.1, lr=0.03, w_threshold=0.0)
-    print("W1: ", W1)
-    print("W2: ", W2)
-    sign, logdet = torch.linalg.slogdet(torch.tensor(W2))
-    print("logdet: ", logdet)
-    y_hat = output[:, 1].detach().numpy()
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(x, y, label='y', color='blue', marker='o')  # Plot x vs. y1
-    plt.scatter(x, y_hat, label='y_est', color='red', marker='s') 
+    plt.scatter(X.detach().numpy()[:, 0], X_true.detach().numpy()[:, 1], label='y_noise', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(X.detach().numpy()[:, 0], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
+    plt.scatter(X.detach().numpy()[:, 0], X.detach().numpy()[:, 1], label='y', color='green', marker='o')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend()
+    plt.show()
+    print("The programm is closed")
+
+    plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    plt.scatter(X.detach().numpy()[:, 1], X_true.detach().numpy()[:, 0], label='x_noise', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(X.detach().numpy()[:, 1], x_est.detach().numpy()[:, 0], label='x_est', color='red', marker='s') 
+    plt.scatter(X.detach().numpy()[:, 1], X.detach().numpy()[:, 0], label='x', color='green', marker='o')
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
