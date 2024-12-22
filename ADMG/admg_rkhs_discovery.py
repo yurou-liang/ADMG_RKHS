@@ -409,7 +409,7 @@ class RKHS_discovery:
             # mse_loss_prior = self.model.mse(x_est_prior)
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
-            score = mle_loss_prior + complexity_reg + sparsity_reg 
+            score = mle_loss_prior #+ sparsity_reg + complexity_reg
             penalty = structure_penalty(W1, W2, self.admg_class)
             cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
             # score = mse_loss_prior + complexity_reg + sparsity_reg
@@ -422,22 +422,22 @@ class RKHS_discovery:
             obj.backward()
             optimizer_alpha_beta.step()
 
-            optimizer_Sigma.zero_grad()
-            W1, W2 = self.model.fc1_to_adj()
-            h_val = cycle_loss(W1, s=1)
-            if h_val.item() < 0:
-                self.vprint(f'Found h negative {h_val.item()} at iter {i}')
-                return False
-            x_est_prior, Sigma_prior = self.model.forward()
-            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            complexity_reg = self.model.complexity_reg(lambda1, tau)
-            sparsity_reg = self.model.sparsity_reg(W1, tau)
-            score = mle_loss_prior + complexity_reg + sparsity_reg 
-            penalty = structure_penalty(W1, W2, self.admg_class)
-            cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
-            obj = mu * score + penalty 
-            obj.backward()
-            optimizer_Sigma.step()
+            # optimizer_Sigma.zero_grad()
+            # W1, W2 = self.model.fc1_to_adj()
+            # h_val = cycle_loss(W1, s=1)
+            # if h_val.item() < 0:
+            #     self.vprint(f'Found h negative {h_val.item()} at iter {i}')
+            #     return False
+            # x_est_prior, Sigma_prior = self.model.forward()
+            # mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            # complexity_reg = self.model.complexity_reg(lambda1, tau)
+            # sparsity_reg = self.model.sparsity_reg(W1, tau)
+            # score = mle_loss_prior #+ sparsity_reg + complexity_reg
+            # penalty = structure_penalty(W1, W2, self.admg_class)
+            # cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
+            # obj = mu * score + penalty 
+            # obj.backward()
+            # optimizer_Sigma.step()
 
         # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
         # if lr_decay is True:
@@ -636,8 +636,8 @@ class RKHS_discovery:
         print("final_W2: ", final_W2)
         final_W1 = final_W1.cpu().detach().numpy()
         final_W2 = final_W2.cpu().detach().numpy()
-        final_W1[np.abs(final_W1) < w_threshold] = 0
-        final_W2[np.abs(final_W2) < w_threshold] = 0
+        # final_W1[np.abs(final_W1) < w_threshold] = 0
+        # final_W2[np.abs(final_W2) < w_threshold] = 0
         #return get_graph(final_W1, final_W2, data.columns, w_threshold)
         return final_W1, final_W2, output
 
