@@ -422,22 +422,22 @@ class RKHS_discovery:
             obj.backward()
             optimizer_alpha_beta.step()
 
-            # optimizer_Sigma.zero_grad()
-            # W1, W2 = self.model.fc1_to_adj()
-            # h_val = cycle_loss(W1, s=1)
-            # if h_val.item() < 0:
-            #     self.vprint(f'Found h negative {h_val.item()} at iter {i}')
-            #     return False
-            # x_est_prior, Sigma_prior = self.model.forward()
-            # mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            # complexity_reg = self.model.complexity_reg(lambda1, tau)
-            # sparsity_reg = self.model.sparsity_reg(W1, tau)
-            # score = mle_loss_prior #+ sparsity_reg + complexity_reg
-            # penalty = structure_penalty(W1, W2, self.admg_class)
-            # cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
-            # obj = mu * score + penalty 
-            # obj.backward()
-            # optimizer_Sigma.step()
+            optimizer_Sigma.zero_grad()
+            W1, W2 = self.model.fc1_to_adj()
+            h_val = cycle_loss(W1, s=1)
+            if h_val.item() < 0:
+                self.vprint(f'Found h negative {h_val.item()} at iter {i}')
+                return False
+            x_est_prior, Sigma_prior = self.model.forward()
+            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            complexity_reg = self.model.complexity_reg(lambda1, tau)
+            sparsity_reg = self.model.sparsity_reg(W1, tau)
+            score = mle_loss_prior #+ sparsity_reg + complexity_reg
+            penalty = structure_penalty(W1, W2, self.admg_class)
+            cov_regularizer = torch.sqrt(torch.sum((torch.relu(-4 - Sigma_prior) + torch.relu(Sigma_prior - 4))**2))
+            obj = mu * score + penalty 
+            obj.backward()
+            optimizer_Sigma.step()
 
         # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
         # if lr_decay is True:
