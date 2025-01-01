@@ -270,7 +270,7 @@ class Sigma_discovery:
                     break
                 obj_prev = obj_new
             pbar.update(1)
-        return x_est_posterior, Sigma_posterior
+        return True
     
     def fit(self, 
         lambda1: torch.float64 = .02, 
@@ -423,7 +423,7 @@ if __name__ == "__main__":
 
     # Random data for X and X_hat
     True_Sigma = np.array([[1, 0.0],    # Variance of X is 1, covariance between X and Y is 0.8
-                  [0.0, 1.5]])   # Variance of Y is 1, covariance between Y and X is 0.8
+                  [0.0, 2]])   # Variance of Y is 1, covariance between Y and X is 0.8
     epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
     epsilon = torch.tensor(epsilon, dtype=torch.float64)
     x1 = epsilon[:, 0]
