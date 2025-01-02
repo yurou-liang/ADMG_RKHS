@@ -196,6 +196,15 @@ class Sigma_RKHSDagma(nn.Module):
         regularized = lambda1*tau*(temp1 + temp2 + temp3)
         return regularized
     
+    def sparsity_reg(self, weight: torch.tensor, tau):
+        """
+        weight: weighted adjacency matrix
+
+        return: sparsity penalty 
+        """
+        sparsity = torch.sum(weight)
+        return 2*tau*sparsity
+    
 class Sigma_discovery:
 
     def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64, lambda1=1e-3, tau=1e-4):
@@ -234,7 +243,9 @@ class Sigma_discovery:
             mse_loss_prior = self.model.mse(self.x, x_est_prior)
             residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
             complexity_reg = self.model.complexity_reg(lambda1, tau)
-            obj = mu * mle_loss_prior + h_val#+ mse_loss_prior#+ complexity_reg #+ residual_norm
+            sparsity_reg = self.model.sparsity_reg(W1, tau)
+            score = mle_loss_prior + sparsity_reg + complexity_reg 
+            obj = mu * score + h_val
             obj.backward()
             optimizer_alpha_beta.step()
 
@@ -246,7 +257,10 @@ class Sigma_discovery:
             mse_loss_prior = self.model.mse(self.x, x_est_prior)
             residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
             complexity_reg = self.model.complexity_reg(lambda1, tau)
-            obj = mu * mle_loss_prior + h_val #+ mse_loss_prior#+ complexity_reg #+ residual_norm
+            sparsity_reg = self.model.sparsity_reg(W1, tau)
+
+            score = mle_loss_prior + sparsity_reg + complexity_reg 
+            obj = mu * score + h_val
             obj.backward()
             optimizer_Sigma.step()
             
@@ -352,7 +366,7 @@ class Sigma_discovery:
                 model_copy.load_state_dict(self.model.state_dict())
                 lr_decay = False
                 while success is False:
-                    print("success: ", success)
+                    # print("success: ", success)
                     success = self.minimize(inner_iter, lr, lambda1, tau, lambda2, mu, s_cur, 
                                         lr_decay, pbar=pbar, t =i)
                     if success is False:
