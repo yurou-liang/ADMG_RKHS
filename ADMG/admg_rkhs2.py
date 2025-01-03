@@ -66,17 +66,17 @@ def cycle_loss(W: torch.tensor, s=1):
     :return: float corresponding to penalty on directed cycles.
     Use trick when computing the trace of a product
     """
-    # d = W.size(0)
-    # s = torch.tensor(s)
-    # A = s*torch.eye(d) - W*W
-    # sign, logabsdet = torch.linalg.slogdet(A)
-    # h = -logabsdet + d * torch.log(s)
-    # return h
+    d = W.size(0)
+    s = torch.tensor(s)
+    A = s*torch.eye(d) - W*W
+    sign, logabsdet = torch.linalg.slogdet(A)
+    h = -logabsdet + d * torch.log(s)
+    return h
 
-    d = len(W)
-    M = torch.eye(d) + W * W/d
-    E = torch.matrix_power(M, d - 1)
-    return torch.sum(E.T * M) - d
+    # d = len(W)
+    # M = torch.eye(d) + W * W/d
+    # E = torch.matrix_power(M, d - 1)
+    # return torch.sum(E.T * M) - d
 
 class Sigma_RKHSDagma(nn.Module):
 
