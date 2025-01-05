@@ -1,8 +1,8 @@
 import utils
-from RKHS import RKHS_DAGMA
+# from RKHS import RKHS_DAGMA
 import admg_rkhs2
 import sys
-from notears import NotearsMLP, notears_nonlinear, NotearsSobolev, notears_linear
+# from notears import NotearsMLP, notears_nonlinear, NotearsSobolev, notears_linear
 import torch
 import numpy as np
 import json
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     torch.set_default_dtype(torch.double)
 
     torch.backends.cudnn.benchmark = False
-    os.chdir('./experiments')
+    # os.chdir('./experiments')
 
     for idx_nodes, n_nodes in enumerate(args.num_nodes):
         print('-----------------------------\n' +
@@ -204,7 +204,9 @@ if __name__ == "__main__":
             utils.set_random_seed(args.random_seed)
             torch.manual_seed(args.random_seed)
             B_true = utils.simulate_dag(d, s0, graph_type)
-            noise = np.random.uniform(low=0.5, high=1.5, size=d)
+            print("shape: ", B_true.shape[0])
+            noise = np.random.uniform(low=0.5, high=1.5, size=B_true.shape[0])
+            print(noise.shape)
             X = utils.simulate_nonlinear_sem(B_true, n, sem_type, noise_scale=noise)
             X_torch = torch.from_numpy(X)
             if args.algorithm == "RKHS":
