@@ -9,6 +9,8 @@ import multiprocessing
 import typing
 from tqdm.auto import tqdm
 import copy
+from sklearn.neighbors import NearestNeighbors
+# from imblearn.over_sampling import SMOTE
 
 torch.set_default_dtype(torch.float64)
 device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -30,7 +32,7 @@ def SPDLogCholesky(M: torch.tensor, d):
     return Sigma
 
 
-def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
+def reverse_SPDLogCholesky(d):
     """
     Reverse the LogCholesky decomposition that map the SPD Sigma matrix to the matrix M.
     """
@@ -105,10 +107,10 @@ class Sigma_RKHSDagma(nn.Module):
         # Sigma = torch.cov(self.x.T)
         # Sigma = torch.eye(self.d)
 
-        # self.M = reverse_SPDLogCholesky(self.d, Sigma)
-        # self.M = nn.Parameter(self.M)
+        self.M = reverse_SPDLogCholesky(self.d)
+        self.M = nn.Parameter(self.M)
 
-        self.L = nn.Parameter(torch.ones(self.d))
+        # self.L = nn.Parameter(torch.ones(self.d))
         # self.L = nn.Parameter(self.L)
         # self.Sigma = self.L @ self.L.T + 1e-6*self.I
         # self.Wii = torch.diag(torch.diag(self.Sigma))
@@ -146,13 +148,13 @@ class Sigma_RKHSDagma(nn.Module):
         self.mixed_grad[self.expanded_identity_mask2] = 0
 
     def forward(self):
-        # Sigma = SPDLogCholesky(self.M, d=self.d)
-        Sigma = torch.diag(self.L)
+        Sigma = SPDLogCholesky(self.M, d=self.d)
+        # Sigma = torch.diag(self.L)
         output1 = torch.einsum('jl, jil -> ij', self.alpha, self.K) # [n, d]
         output2 = torch.einsum('jal, jila -> ijl', self.beta, self.grad_K2) # [n, d, n]
         output2 = torch.sum(output2, dim = 2) # [n, d]
         output = output1 + output2 
-        # output[:, 0] = 0
+        output[:, 0] = 0
         return Sigma, output
     
     def fc1_to_adj(self) -> torch.Tensor: # [d, d]
@@ -176,8 +178,19 @@ class Sigma_RKHSDagma(nn.Module):
         return mle
     
     def mse(self, x, x_est: torch.tensor): # [1, 1]
-      squared_loss = 0.5 / self.n * torch.sum((x_est - x) ** 2)
-      return squared_loss
+        x1 = self.x[:, 0].numpy().reshape(-1, 1)
+        k = 10
+        nn = NearestNeighbors(n_neighbors=k).fit(x1)
+        distances, _ = nn.kneighbors(x1)
+        weights = 1 / (np.mean(distances, axis=1) + 1e-6)  # Sparse regions have higher weights
+        weights = torch.tensor(weights / np.sum(weights), dtype=torch.float64)
+        # weights = torch.tensor(weights, dtype=torch.float64)
+        # print("weight: ", weights)
+        squared_loss = 0.5 / self.n * torch.sum(weights * (torch.max((x_est - x))) ** 2)
+        squared_loss_without_weight = 0.5 / self.n * torch.sum((x_est - x) ** 2)
+        # print("squared loss: ", squared_loss)
+        # print("without weight: ", 0.5 / self.n * torch.sum(weights * (torch.sum((x_est - x))) ** 2))
+        return squared_loss, squared_loss_without_weight
 
     def complexity_reg(self, lambda1, tau):
         """
@@ -210,6 +223,8 @@ class Sigma_discovery:
     def __init__(self, x, model: nn.Module, admg_class, verbose: bool = False, dtype: torch.dtype = torch.float64, lambda1=1e-3, tau=1e-4):
         self.model = model
         self.x = x
+        # smote = SMOTE(random_state=42)
+        # self.x_resampled, _ = smote.fit_resample(x.detach().cpu().numpy(), np.zeros(x.shape[0]))
         self.vprint = print if verbose else lambda *a, **k: None
     # def minimize(self, lr: torch.float64 = .03, lambda2: torch.float64 = .005, max_iter=2500, lambda1=0.5e-3, tau=1):
     def minimize(self, 
@@ -228,48 +243,48 @@ class Sigma_discovery:
         self.vprint(f'\nMinimize s={s} -- lr={lr}')
         # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
         optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=lambda2)
-        optimizer_Sigma = optim.Adam([self.model.L], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
+        optimizer_Sigma = optim.Adam([self.model.M], lr=0.003, betas=(.99,.999), weight_decay=lambda2)
 
         obj_prev = 1e16####
         for i in range(max_iter):
             optimizer_alpha_beta.zero_grad()
             W1 = self.model.fc1_to_adj()
             h_val = cycle_loss(W1, s=1)
-            if h_val.item() < 0:
-                self.vprint(f'Found h negative {h_val.item()} at iter {i}')
-                return False
+            # if h_val.item() < 0:
+            #     self.vprint(f'Found h negative {h_val.item()} at iter {i}')
+            #     return False
             Sigma_prior, x_est_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            mse_loss_prior = self.model.mse(self.x, x_est_prior)
+            mse_loss_prior, squared_loss_without_weight_prior = self.model.mse(self.x, x_est_prior)
             residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
-            score = mle_loss_prior + sparsity_reg + complexity_reg 
-            obj = mu * score + h_val
+            score = mse_loss_prior + squared_loss_without_weight_prior#+ sparsity_reg + complexity_reg 
+            obj = mu * score #+ h_val
             obj.backward()
             optimizer_alpha_beta.step()
 
-            optimizer_Sigma.zero_grad()
-            W1 = self.model.fc1_to_adj()
-            h_val = cycle_loss(W1, s=1)
-            Sigma_prior, x_est_prior = self.model.forward()
-            mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
-            mse_loss_prior = self.model.mse(self.x, x_est_prior)
-            residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
-            complexity_reg = self.model.complexity_reg(lambda1, tau)
-            sparsity_reg = self.model.sparsity_reg(W1, tau)
+            # optimizer_Sigma.zero_grad()
+            # W1 = self.model.fc1_to_adj()
+            # h_val = cycle_loss(W1, s=1)
+            # Sigma_prior, x_est_prior = self.model.forward()
+            # mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
+            # mse_loss_prior = self.model.mse(self.x, x_est_prior)
+            # residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
+            # complexity_reg = self.model.complexity_reg(lambda1, tau)
+            # sparsity_reg = self.model.sparsity_reg(W1, tau)
 
-            score = mle_loss_prior + sparsity_reg + complexity_reg 
-            obj = mu * score + h_val
-            obj.backward()
-            optimizer_Sigma.step()
+            # score = mse_loss_prior #+ sparsity_reg + complexity_reg 
+            # obj = mu * score #+ h_val
+            # obj.backward()
+            # optimizer_Sigma.step()
             
             Sigma_posterior, x_est_posterior = self.model.forward()
             mle_loss_posterior = self.model.mle_loss(self.x, x_est_posterior, Sigma_posterior)
-            mse_loss_posterior = self.model.mse(self.x, x_est_posterior)
-            diff = torch.abs(mle_loss_prior- mle_loss_posterior)
-            # if diff < 1e-12:
-            #     break
+            mse_loss_posterior, squared_loss_without_weight_posterior = self.model.mse(self.x, x_est_posterior)
+            diff = torch.abs(mse_loss_prior+ squared_loss_without_weight_prior- mse_loss_posterior - squared_loss_without_weight_posterior)
+            if diff < 1e-12:
+                break
                 
             if i % self.checkpoint == 0 or i == max_iter-1:
                 obj_new = obj.item()
@@ -279,6 +294,7 @@ class Sigma_discovery:
                 self.vprint(f"Step {i}: mle = {mle_loss_posterior.item()}")
                 self.vprint(f"Step {i}: mse = {mse_loss_posterior.item()}")
                 self.vprint(f"Step {i}: Sigma = {Sigma_posterior}")
+                self.vprint(f"Step {i}: squared_loss_without_weight = {squared_loss_without_weight_posterior}")
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
                     pbar.update(max_iter-i)
                     break
@@ -430,39 +446,82 @@ if __name__ == "__main__":
 
 
 
-    # multiprocessing.set_start_method('spawn')
-    # # Sample data generation: let's assume X and X_hat are from some known distributions for the sake of example
-    n_samples = 300  # Number of samples
+    # # multiprocessing.set_start_method('spawn')
+    # # # Sample data generation: let's assume X and X_hat are from some known distributions for the sake of example
+    # n_samples = 300  # Number of samples
+    # dim = 2  # Dimension of the normal vectors
+
+    # # Random data for X and X_hat
+    # True_Sigma = np.array([[1, 0.0],    # Variance of X is 1, covariance between X and Y is 0.8
+    #               [0.0, 2]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    # epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
+    # epsilon = torch.tensor(epsilon, dtype=torch.float64)
+    # x1 = epsilon[:, 0]
+    # # x1 = torch.randn(n_samples)
+    # x1_true = epsilon[:, 0]
+    # x2 = 20*torch.sin(x1)
+    # # Step 4: Combine these results into a new tensor of shape [n, 2]
+    # X = torch.stack((x1, x2), dim=1)
+    # x2_true = 20*torch.sin(x1)+ epsilon[:, 1]
+    # X_true = torch.stack((x1_true, x2_true), dim=1)
+    # eq_model2 = Sigma_RKHSDagma(X_true, gamma = 1)
+    # model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
+    # final_W1, Sigma, x_est = model2.fit()
+    # # print("X_est: ", x_est)
+    # y_hat = x_est[:, 1].detach().numpy()
+    # empirical_covariance = np.cov(epsilon, rowvar=False)
+    # print("Empirical Covariance Matrix:", empirical_covariance)
+    # print("estimated Sigma: ", Sigma)
+    # # estimated_covariance = np.cov(x1.detach().numpy(), (x2_true-x_est[:, 1]).detach().numpy())
+    # # print("estimated Covariance Matrix:", estimated_covariance[0, 1])
+
+    # plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    # plt.scatter(X.detach().numpy()[:, 0], X.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
+    # plt.scatter(X.detach().numpy()[:, 0], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
+    # plt.scatter(X.detach().numpy()[:, 0], X_true.detach().numpy()[:, 1], label='y_noise', color='green', marker='s') 
+    # plt.xlabel('x')
+    # plt.ylabel('y')
+    # plt.legend()
+    # plt.show()
+    # print("The programm is closed")
+
+    # plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
+    # plt.scatter(X.detach().numpy()[:, 1], x_est.detach().numpy()[:, 0], label='x_est', color='red', marker='s') 
+    # plt.scatter(X.detach().numpy()[:, 1], X.detach().numpy()[:, 0], label='x', color='green', marker='o')
+    # plt.xlabel('x')
+    # plt.ylabel('y')
+    # plt.legend()
+    # plt.show()
+    # print("The programm is closed")
+
+    n_samples = 200  # Number of samples
     dim = 2  # Dimension of the normal vectors
 
     # Random data for X and X_hat
     True_Sigma = np.array([[1, 0.0],    # Variance of X is 1, covariance between X and Y is 0.8
-                  [0.0, 2]])   # Variance of Y is 1, covariance between Y and X is 0.8
+                  [0.0, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
     epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
     epsilon = torch.tensor(epsilon, dtype=torch.float64)
-    x1 = epsilon[:, 0]
-    # x1 = torch.randn(n_samples)
-    x1_true = epsilon[:, 0]
-    x2 = 20*torch.sin(x1)
-    # Step 4: Combine these results into a new tensor of shape [n, 2]
-    X = torch.stack((x1, x2), dim=1)
-    x2_true = 20*torch.sin(x1)+ epsilon[:, 1]
-    X_true = torch.stack((x1_true, x2_true), dim=1)
-    eq_model2 = Sigma_RKHSDagma(X_true, gamma = 1)
+    x = epsilon[:, 0]
+    y = 5*torch.sin(x)
+    y_true = y + epsilon[:, 1]
+    X_true = torch.stack((x, y_true), dim=1)
+    # X = torch.randn(n_samples, dim)
+    # X_inverse = X[:, [1, 0]]
+    # X_hat = 5*torch.sin(X_inverse)
+    # X_true = X_hat + epsilon
+    eq_model2 = Sigma_RKHSDagma(X_true, gamma = 2)
     model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
-    final_W1, Sigma, x_est = model2.fit()
-    # print("X_est: ", x_est)
+    W1, Sigma, x_est = model2.fit(T =1)
     y_hat = x_est[:, 1].detach().numpy()
     empirical_covariance = np.cov(epsilon, rowvar=False)
     print("Empirical Covariance Matrix:", empirical_covariance)
     print("estimated Sigma: ", Sigma)
-    # estimated_covariance = np.cov(x1.detach().numpy(), (x2_true-x_est[:, 1]).detach().numpy())
-    # print("estimated Covariance Matrix:", estimated_covariance[0, 1])
 
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(X.detach().numpy()[:, 0], X.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
-    plt.scatter(X.detach().numpy()[:, 0], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
-    plt.scatter(X.detach().numpy()[:, 0], X_true.detach().numpy()[:, 1], label='y_noise', color='green', marker='s') 
+    plt.scatter(x.detach().numpy(), y.detach().numpy(), label='y', color='blue', marker='o')  # Plot x vs. y1
+    plt.scatter(x.detach().numpy(), x_est[:,1].detach().numpy(), label='y_est', color='red', marker='s') 
+    plt.scatter(x.detach().numpy(), y_true.detach().numpy(), label='y_true', color='green', marker='o') 
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
@@ -470,8 +529,8 @@ if __name__ == "__main__":
     print("The programm is closed")
 
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(X.detach().numpy()[:, 1], x_est.detach().numpy()[:, 0], label='x_est', color='red', marker='s') 
-    plt.scatter(X.detach().numpy()[:, 1], X.detach().numpy()[:, 0], label='x', color='green', marker='o')
+    plt.scatter(y.detach().numpy(), x_est.detach().numpy()[:, 0], label='x_est', color='red', marker='s') 
+    plt.scatter(y.detach().numpy(), x.detach().numpy(), label='x', color='green', marker='o')
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()

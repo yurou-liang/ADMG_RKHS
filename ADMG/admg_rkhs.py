@@ -177,8 +177,8 @@ if __name__ == "__main__":
     dim = 2  # Dimension of the normal vectors
 
     # Random data for X and X_hat
-    True_Sigma = np.array([[1, 0.6],    # Variance of X is 1, covariance between X and Y is 0.8
-                  [0.6, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    True_Sigma = np.array([[1, 0.0],    # Variance of X is 1, covariance between X and Y is 0.8
+                  [0.0, 1]])   # Variance of Y is 1, covariance between Y and X is 0.8
     epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
     epsilon = torch.tensor(epsilon, dtype=torch.float64)
     X = torch.randn(n_samples, dim)
@@ -196,6 +196,7 @@ if __name__ == "__main__":
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
     plt.scatter(X_inverse.detach().numpy()[:, 0], X_true.detach().numpy()[:, 0], label='y', color='blue', marker='o')  # Plot x vs. y1
     plt.scatter(X_inverse.detach().numpy()[:, 0], x_est.detach().numpy()[:, 0], label='y_est', color='red', marker='s') 
+    plt.scatter(X_inverse.detach().numpy()[:, 0], X_hat.detach().numpy()[:, 0], label='y_true', color='green', marker='o') 
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
