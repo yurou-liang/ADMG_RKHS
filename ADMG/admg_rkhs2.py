@@ -436,8 +436,8 @@ if __name__ == "__main__":
     dim = 2  # Dimension of the normal vectors
 
     # Random data for X and X_hat
-    True_Sigma = np.array([[1, 0.0],    # Variance of X is 1, covariance between X and Y is 0.8
-                  [0.0, 2]])   # Variance of Y is 1, covariance between Y and X is 0.8
+    True_Sigma = np.array([[0.5, 0.0],    # Variance of X is 1, covariance between X and Y is 0.8
+                  [0.0, 1.5]])   # Variance of Y is 1, covariance between Y and X is 0.8
     epsilon = np.random.multivariate_normal([0] * dim, True_Sigma, size=n_samples) #[n, d]
     epsilon = torch.tensor(epsilon, dtype=torch.float64)
     x1 = epsilon[:, 0]
@@ -450,9 +450,9 @@ if __name__ == "__main__":
     X_true = torch.stack((x1_true, x2_true), dim=1)
     eq_model2 = Sigma_RKHSDagma(X_true, gamma = 1)
     model2 = Sigma_discovery(x=X_true, model=eq_model2, admg_class = "ancestral", verbose=True)
-    final_W1, Sigma, x_est = model2.fit()
+    final_W1, Sigma, x_est = model2.fit(lambda1=1e-3, tau=1e-4, T = 6)
     # print("X_est: ", x_est)
-    y_hat = x_est[:, 1].detach().numpy()
+    x_est = x_est.cpu().detach().numpy()
     empirical_covariance = np.cov(epsilon, rowvar=False)
     print("Empirical Covariance Matrix:", empirical_covariance)
     print("estimated Sigma: ", Sigma)
@@ -461,7 +461,7 @@ if __name__ == "__main__":
 
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
     plt.scatter(X.detach().numpy()[:, 0], X.detach().numpy()[:, 1], label='y', color='blue', marker='o')  # Plot x vs. y1
-    plt.scatter(X.detach().numpy()[:, 0], x_est.detach().numpy()[:, 1], label='y_est', color='red', marker='s') 
+    plt.scatter(X.detach().numpy()[:, 0], x_est[:, 1], label='y_est', color='red', marker='s') 
     plt.scatter(X.detach().numpy()[:, 0], X_true.detach().numpy()[:, 1], label='y_noise', color='green', marker='s') 
     plt.xlabel('x')
     plt.ylabel('y')
@@ -470,7 +470,7 @@ if __name__ == "__main__":
     print("The programm is closed")
 
     plt.figure(figsize=(10, 6))  # Optional: specifies the figure size
-    plt.scatter(X.detach().numpy()[:, 1], x_est.detach().numpy()[:, 0], label='x_est', color='red', marker='s') 
+    plt.scatter(X.detach().numpy()[:, 1], x_est[:, 0], label='x_est', color='red', marker='s') 
     plt.scatter(X.detach().numpy()[:, 1], X.detach().numpy()[:, 0], label='x', color='green', marker='o')
     plt.xlabel('x')
     plt.ylabel('y')

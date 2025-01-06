@@ -9,7 +9,7 @@ import json
 import argparse
 import os
 
-def RKHS_likelihood(lambda1, tau, X, device, B_true, gamma, function_type, d, seed, thresh = 0.00, T=6, lr = 0.03):
+def RKHS_likelihood(lambda1, tau, X, device, B_true, gamma, function_type, d, seed, noise, thresh = 0.00, T=6, lr = 0.03):
     results = {}
 
     X = X.to(device)
@@ -29,7 +29,7 @@ def RKHS_likelihood(lambda1, tau, X, device, B_true, gamma, function_type, d, se
     Sigma, x_est = eq_model.forward()
     mle = eq_model.mle_loss(X, x_est, Sigma).detach().cpu().numpy()
     W_est = eq_model.fc1_to_adj()
-    h_val = eq_model.h_func(W_est, s=1).detach().cpu().numpy()
+    h_val = eq_model.cycle_loss(W_est, s=1).detach().cpu().numpy()
     filename = f'RKHS_likelihood_function_type_{function_type}_d{d}_seed{seed}'
     results = {
     'SHD': acc['shd'],
@@ -40,6 +40,8 @@ def RKHS_likelihood(lambda1, tau, X, device, B_true, gamma, function_type, d, se
     'h_val': h_val.item(),
     'start mse': start_mle.tolist(),
     'W_est_no_thresh': W_est_no_thresh.tolist(),
+    'Sigma_true': noise.tolist(),
+    'Sigma_est': Sigma.cpu().detach().numpy().tolist(),
     'B_true': B_true.tolist(),
     'X': X.detach().cpu().numpy().tolist()}
 
@@ -180,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--random_seed', default=0, type=int)
     parser.add_argument('--device', default='cuda')
     parser.add_argument('-f', '--function_type',  nargs='+', default=['gp-add', 'gp', 'mlp'], type=str)
-    parser.add_argument('-thresh', default=0.05, type = float)
+    parser.add_argument('-thresh', default=0.01, type = float)
     parser.add_argument('-lr', default=0.03, type = float)
     parser.add_argument('-A', '--algorithm', default='RKHS', type=str)
 
