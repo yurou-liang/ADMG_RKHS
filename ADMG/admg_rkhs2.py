@@ -178,6 +178,21 @@ class Sigma_RKHSDagma(nn.Module):
     def mse(self, x, x_est: torch.tensor): # [1, 1]
       squared_loss = 0.5 / self.n * torch.sum((x_est - x) ** 2)
       return squared_loss
+    
+    def cycle_loss(self, W: torch.tensor, s=1):
+        """
+        Compute the loss, h_acyc, due to directed cycles in the induced graph of W.
+
+        :param W: numpy matrix.
+        :return: float corresponding to penalty on directed cycles.
+        Use trick when computing the trace of a product
+        """
+        d = W.size(0)
+        s = torch.tensor(s)
+        A = s*torch.eye(d) - W*W
+        sign, logabsdet = torch.linalg.slogdet(A)
+        h = -logabsdet + d * torch.log(s)
+        return h
 
     def complexity_reg(self, lambda1, tau):
         """

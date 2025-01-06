@@ -51,7 +51,7 @@ def RKHS_likelihood(lambda1, tau, X, device, B_true, gamma, function_type, d, se
     torch.cuda.empty_cache()
 
 
-def RKHS_test(lambda1, tau, X, device, B_true, gamma, function_type, d, seed, thresh = 0.05, T=6, lr = 0.03):
+def RKHS_test(lambda1, tau, X, device, B_true, gamma, function_type, d, seed, thresh = 0.1, T=6, lr = 0.03):
     results = {}
 
     X = X.to(device)
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--random_seed', default=0, type=int)
     parser.add_argument('--device', default='cuda')
     parser.add_argument('-f', '--function_type',  nargs='+', default=['gp-add', 'gp', 'mlp'], type=str)
-    parser.add_argument('-thresh', default=0.01, type = float)
+    parser.add_argument('-thresh', default=0.1, type = float)
     parser.add_argument('-lr', default=0.03, type = float)
     parser.add_argument('-A', '--algorithm', default='RKHS', type=str)
 
@@ -219,10 +219,17 @@ if __name__ == "__main__":
                         d = n_nodes, seed = args.random_seed, thresh = args.thresh, T=args.num_iterations, lr = args.lr)
             elif args.algorithm == "RKHS_likelihood":
                 device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                print("device: ", device)
                 torch.set_default_device(device)
+                import torch
+
+                # Check if CUDA (GPU) is available
+                print(torch.cuda.is_available())  # This should return True if GPU is available
+                print(torch.cuda.device_count())  # This should return a number greater than 0 if GPUs are detected
+                print(torch.cuda.get_device_name(0))
                 print('>>> Performing DAGMA-RKHS discovery <<<')
                 RKHS_likelihood(lambda1 = args.lambda1, tau = args.tau, X = X_torch, device=device, B_true = B_true, gamma= gamma, function_type = function_type, 
-                        d = n_nodes, seed = args.random_seed, thresh = args.thresh, T=args.num_iterations, lr = args.lr)
+                        d = n_nodes, seed = args.random_seed, noise = noise, thresh = args.thresh, T=args.num_iterations, lr = args.lr)
             elif args.algorithm == "NOTEARS_MLP":
                 print('>>> Performing NOTEARS_MLP discovery <<<')
                 NOTEARS_MLP(X = X, B_true = B_true, function_type = function_type, d = n_nodes, seed = args.random_seed)

@@ -275,5 +275,8 @@ def count_accuracy(B_true, B_est):
     extra_lower = np.setdiff1d(pred_lower, cond_lower, assume_unique=True)
     missing_lower = np.setdiff1d(cond_lower, pred_lower, assume_unique=True)
     shd = len(extra_lower) + len(missing_lower) + len(reverse)
-    return {'fdr': fdr, 'tpr': tpr, 'fpr': fpr, 'shd': shd, 'nnz': pred_size}
+
+     # f1
+    f1 = 2 * (1 - fdr) * tpr / (max(1 - fdr + tpr, 1e-10))
+    return {'fdr': fdr, 'tpr': tpr, 'fpr': fpr, 'shd': shd, 'nnz': pred_size, "f1": f1}
 
