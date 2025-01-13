@@ -240,7 +240,11 @@ class Sigma_RKHSDagma(nn.Module):
     def mse(self, x, x_est: torch.tensor): # [1, 1]
         loss = 0.5 / self.n * torch.sum((x_est - x) ** 2)
     #   return squared_loss
-        # loss = 0.5 * self.d * torch.log(1/self.n* torch.sum((x_est - x)**2))
+
+    # mle loss for same variance (works for normal data)
+        # loss = 0.5 * self.d * torch.log(1/self.n* torch.sum((x_est - x)**2)) 
+    
+    # mle loss for different variance (works for standardized data)
         # loss = 0.5 * torch.sum(torch.log(1/self.n*torch.sum((x_est - x)**2, dim = 0)))
         return loss
 
