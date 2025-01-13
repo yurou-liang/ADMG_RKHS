@@ -94,18 +94,24 @@ class RKHSDagma(nn.Module):
     
     # log determinant h
     def h_func(self, weight: torch.tensor, s: torch.tensor):
-    #   s = torch.tensor(s, dtype=torch.float64)
-    #   A = s*self.I - weight
-    #   sign, logabsdet = torch.linalg.slogdet(A)
-    #   h = -logabsdet + self.d * torch.log(s)
-    #   return h
+      s = torch.tensor(s, dtype=torch.float64)
+      A = s*self.I - weight
+      sign, logabsdet = torch.linalg.slogdet(A)
+      h = -logabsdet + self.d * torch.log(s)
+      return h
 
         # d = len(weight)
         # M = torch.eye(d) + weight/d
         # E = torch.matrix_power(M, d - 1)
         # return torch.sum(E.T * M) - d
-        h = trace_expm(weight*weight) - self.d
-        return h
+
+        # h = trace_expm(weight) - self.d
+
+        # d = len(weight)
+        # M = torch.eye(d) + weight*weight/d
+        # E = torch.matrix_power(M, d - 1)
+        # return torch.sum(E.T * M) - d
+        # return h
     
 
     def mse(self, x_est: torch.tensor): # [1, 1]

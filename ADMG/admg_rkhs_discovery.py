@@ -133,7 +133,7 @@ def SPDLogCholesky(M: torch.tensor, d):
     Sigma = torch.matmul(L, L.t()) #+ 1e-6 * torch.eye(d) # numerical stability
     return Sigma
 
-def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
+def reverse_SPDLogCholesky(d):
     """
     Reverse the LogCholesky decomposition that map the SPD Sigma matrix to the matrix M.
     """
@@ -188,9 +188,9 @@ class ADMG_RKHSDagma(nn.Module):
         self.I = torch.eye(self.d)
         # self.L = torch.rand(self.d, self.d) * 0.1 - 0.1
         # Sigma = torch.cov(self.x.T)
-        Sigma = torch.eye(self.d)
+        # Sigma = torch.eye(self.d)
 
-        self.M = reverse_SPDLogCholesky(self.d, Sigma)
+        self.M = reverse_SPDLogCholesky(self.d)
         self.M = nn.Parameter(self.M)
         # self.L = nn.Parameter(self.L)
         # self.Sigma = self.L @ self.L.T + 1e-6*self.I

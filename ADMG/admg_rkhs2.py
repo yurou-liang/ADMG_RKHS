@@ -1,4 +1,5 @@
 import torch
+import math
 import torch.optim as optim
 from torch.distributions.multivariate_normal import MultivariateNormal
 import numpy as np
@@ -9,6 +10,7 @@ import multiprocessing
 import typing
 from tqdm.auto import tqdm
 import copy
+from trace_expm import trace_expm
 
 torch.set_default_dtype(torch.float64)
 device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -30,7 +32,7 @@ def SPDLogCholesky(M: torch.tensor, d):
     return Sigma
 
 
-def reverse_SPDLogCholesky(d, Sigma: torch.tensor):
+def reverse_SPDLogCholesky(d):
     """
     Reverse the LogCholesky decomposition that map the SPD Sigma matrix to the matrix M.
     """
@@ -78,6 +80,41 @@ def cycle_loss(W: torch.tensor, s=1):
     # E = torch.matrix_power(M, d - 1)
     # return torch.sum(E.T * M) - d
 
+def ancestrality_loss(W1: torch.tensor, W2: torch.tensor):
+    """
+    Compute the loss due to violations of ancestrality in the induced ADMG of W1, W2.
+
+    :param W1: numpy matrix for directed edge coefficients.
+    :param W2: numpy matrix for bidirected edge coefficients.
+    :return: float corresponding to penalty on violations of ancestrality.
+    """
+    d = len(W1)
+    W1_pos = W1*W1
+    W2_pos = W2*W2
+    W1k = torch.eye(d)
+    M = torch.eye(d)
+    for k in range(1, d):
+        W1k = W1k@W1_pos
+        # M += comb(d, k) * (1 ** k) * W1k (typical binoimial)
+        M += 1.0/math.factorial(k) * W1k #(special scaling)
+
+    return torch.sum(M*W2_pos)
+
+def structure_penalty(W1: torch.tensor, W2: torch.tensor, admg_class):
+
+    if admg_class == "ancestral":
+        penalty = ancestrality_loss
+    # elif admg_class == "arid":
+    #     penalty = reachable_loss
+    # elif admg_class == "bowfree":
+    #     penalty = bow_loss
+    elif admg_class == "none":
+        penalty = lambda *args, **kwargs: 0
+    else:
+        raise NotImplemented("Invalid ADMG class")
+    structure_penalty = cycle_loss(W1) + penalty(W1, W2)
+    return structure_penalty
+
 class Sigma_RKHSDagma(nn.Module):
 
     def __init__(self, data, gamma = 1):
@@ -105,11 +142,10 @@ class Sigma_RKHSDagma(nn.Module):
         # Sigma = torch.cov(self.x.T)
         # Sigma = torch.eye(self.d)
 
-        # self.M = reverse_SPDLogCholesky(self.d, Sigma)
-        # self.M = nn.Parameter(self.M)
+        self.M = reverse_SPDLogCholesky(self.d)
+        self.M = nn.Parameter(self.M)
 
-        self.L = nn.Parameter(torch.ones(self.d))
-        # self.L = nn.Parameter(self.L)
+        # self.L = nn.Parameter(torch.ones(self.d))
         # self.Sigma = self.L @ self.L.T + 1e-6*self.I
         # self.Wii = torch.diag(torch.diag(self.Sigma))
         # self.W2 = self.Sigma - self.Wii
@@ -146,8 +182,8 @@ class Sigma_RKHSDagma(nn.Module):
         self.mixed_grad[self.expanded_identity_mask2] = 0
 
     def forward(self):
-        # Sigma = SPDLogCholesky(self.M, d=self.d)
-        Sigma = torch.diag(self.L)
+        Sigma = SPDLogCholesky(self.M, d=self.d)
+        # Sigma = torch.diag(self.L)
         output1 = torch.einsum('jl, jil -> ij', self.alpha, self.K) # [n, d]
         output2 = torch.einsum('jal, jila -> ijl', self.beta, self.grad_K2) # [n, d, n]
         output2 = torch.sum(output2, dim = 2) # [n, d]
@@ -165,7 +201,11 @@ class Sigma_RKHSDagma(nn.Module):
         weight = torch.sum(weight ** 2, dim = 1)/self.n # [d, d]
         help = torch.tensor(1e-16)
         W1 = torch.sqrt(weight+help)
-        return W1
+
+        Sigma, _ = self.forward()
+        Wii = torch.diag(torch.diag(Sigma))
+        W2 = Sigma - Wii
+        return W1, W2
     
     def cycle_loss(self, W: torch.tensor, s=1):
         """
@@ -181,6 +221,12 @@ class Sigma_RKHSDagma(nn.Module):
         sign, logabsdet = torch.linalg.slogdet(A)
         h = -logabsdet + d * torch.log(s)
         return h
+        # d = len(W)
+        # M = torch.eye(d) + W * W/d
+        # E = torch.matrix_power(M, d - 1)
+        # return torch.sum(E.T * M) - d
+        # h = trace_expm(W*W) - self.d
+        # return h
 
     
     def mle_loss(self, x, x_est: torch.tensor, Sigma: torch.tensor) -> torch.tensor: # [n, d] -> [1, 1]
@@ -192,10 +238,10 @@ class Sigma_RKHSDagma(nn.Module):
 
     
     def mse(self, x, x_est: torch.tensor): # [1, 1]
-    #   squared_loss = 0.5 / self.n * torch.sum((x_est - x) ** 2)
+        loss = 0.5 / self.n * torch.sum((x_est - x) ** 2)
     #   return squared_loss
-    #    loss = 0.5 * self.d * torch.log(1/self.n* torch.sum((x_est - x)**2))
-        loss = 0.5 * torch.sum(torch.log(1/self.n*torch.sum((x_est - x)**2, dim = 0)))
+        # loss = 0.5 * self.d * torch.log(1/self.n* torch.sum((x_est - x)**2))
+        # loss = 0.5 * torch.sum(torch.log(1/self.n*torch.sum((x_est - x)**2, dim = 0)))
         return loss
 
     def complexity_reg(self, lambda1, tau):
@@ -230,6 +276,7 @@ class Sigma_discovery:
         self.model = model
         self.x = x
         self.vprint = print if verbose else lambda *a, **k: None
+        self.admg_class = admg_class 
     # def minimize(self, lr: torch.float64 = .03, lambda2: torch.float64 = .005, max_iter=2500, lambda1=0.5e-3, tau=1):
     def minimize(self, 
             max_iter: float, 
@@ -247,12 +294,13 @@ class Sigma_discovery:
         self.vprint(f'\nMinimize s={s} -- lr={lr}')
         # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
         optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
-        optimizer_Sigma = optim.Adam([self.model.L], lr=0.1*lr, betas=(.99,.999), weight_decay=mu*lambda2)
+        optimizer_Sigma = optim.Adam([self.model.M], lr=0.1*lr, betas=(.99,.999), weight_decay=mu*lambda2)
 
         obj_prev = 1e16####
         for i in range(max_iter):
             optimizer_alpha_beta.zero_grad()
-            W1 = self.model.fc1_to_adj()
+            # W1 = self.model.fc1_to_adj()
+            W1, W2 = self.model.fc1_to_adj()
             h_val = cycle_loss(W1, s=1)
             if h_val.item() < 0:
                 self.vprint(f'Found h negative {h_val.item()} at iter {i}')
@@ -263,13 +311,15 @@ class Sigma_discovery:
             residual_norm = torch.norm(self.x - x_est_prior, dim=1).mean()
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
-            score = mse_loss_prior + sparsity_reg + complexity_reg 
-            obj = mu * score + h_val
+            score = mle_loss_prior + sparsity_reg + complexity_reg 
+            penalty = structure_penalty(W1, W2, self.admg_class)
+            obj = mu * score + penalty #+ h_val
             obj.backward()
             optimizer_alpha_beta.step()
 
             optimizer_Sigma.zero_grad()
-            W1 = self.model.fc1_to_adj()
+            # W1 = self.model.fc1_to_adj()
+            W1, W2 = self.model.fc1_to_adj()
             h_val = cycle_loss(W1, s=1)
             Sigma_prior, x_est_prior = self.model.forward()
             mle_loss_prior = self.model.mle_loss(self.x, x_est_prior, Sigma_prior)
@@ -278,8 +328,9 @@ class Sigma_discovery:
             complexity_reg = self.model.complexity_reg(lambda1, tau)
             sparsity_reg = self.model.sparsity_reg(W1, tau)
 
-            score = mse_loss_prior + sparsity_reg + complexity_reg 
-            obj = mu * score + h_val
+            score = mle_loss_prior + sparsity_reg + complexity_reg 
+            penalty = structure_penalty(W1, W2, self.admg_class)
+            obj = mu * score + penalty #+ h_val
             obj.backward()
             optimizer_Sigma.step()
             
@@ -298,6 +349,7 @@ class Sigma_discovery:
                 self.vprint(f"Step {i}: mle = {mle_loss_posterior.item()}")
                 self.vprint(f"Step {i}: mse = {mse_loss_posterior.item()}")
                 self.vprint(f"Step {i}: Sigma = {Sigma_posterior}")
+                self.vprint(f"Step {i}: penalty = {penalty}")
                 if np.abs((obj_prev - obj_new) / obj_prev) <= tol:
                     pbar.update(max_iter-i)
                     break
@@ -397,17 +449,17 @@ class Sigma_discovery:
                             print(":(")
                             break # lr is too small
                         s_cur = 1
-                if h_val < 1e-4:
-                    success, h_val = self.minimize(int(max_iter - inner_iter), lr, lambda1, tau, lambda2, mu, s_cur, 
-                                        lr_decay, pbar=pbar, t =i)
-                    break
+                # if h_val < 1e-4:
+                #     success, h_val = self.minimize(int(max_iter - inner_iter), lr, lambda1, tau, lambda2, mu, s_cur, 
+                #                         lr_decay, pbar=pbar, t =i)
+                #     break
                 mu *= mu_factor
-        final_W1 = self.model.fc1_to_adj()
+        final_W1, _ = self.model.fc1_to_adj()
         final_W2, output = self.model.forward()
         print("final_W1: ", final_W1)
         print("final_W2: ", final_W2)
-        final_W1 = final_W1.cpu().detach().numpy()
-        final_W2 = final_W2.cpu().detach().numpy()
+        final_W1 = final_W1.detach().numpy()
+        final_W2 = final_W2.detach().numpy()
         # final_W1[np.abs(final_W1) < w_threshold] = 0
         # final_W2[np.abs(final_W2) < w_threshold] = 0
         #return get_graph(final_W1, final_W2, data.columns, w_threshold)
