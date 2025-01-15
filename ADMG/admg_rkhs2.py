@@ -188,7 +188,8 @@ class Sigma_RKHSDagma(nn.Module):
         output2 = torch.einsum('jal, jila -> ijl', self.beta, self.grad_K2) # [n, d, n]
         output2 = torch.sum(output2, dim = 2) # [n, d]
         output = output1 + output2 
-        # output[:, 0] = 0
+        output[:, 0] = 0 # # for three nodes
+        output[:, 1] = 0 # for three nodes
         return Sigma, output
     
     def fc1_to_adj(self) -> torch.Tensor: # [d, d]
@@ -298,7 +299,7 @@ class Sigma_discovery:
         self.vprint(f'\nMinimize s={s} -- lr={lr}')
         # optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(.99,.999), weight_decay=lambda2)
         optimizer_alpha_beta = optim.Adam([self.model.alpha, self.model.beta], lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
-        optimizer_Sigma = optim.Adam([self.model.M], lr=0.1*lr, betas=(.99,.999), weight_decay=mu*lambda2)
+        optimizer_Sigma = optim.Adam([self.model.M], lr=lr, betas=(.99,.999), weight_decay=mu*lambda2)
 
         obj_prev = 1e16####
         for i in range(max_iter):
